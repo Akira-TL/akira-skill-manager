@@ -3,9 +3,4 @@ schema = 1
 [skills]
 "Akira-TL/matt-skills/ask-matt" = "^1.4"
 "Akira-TL/skills/browser-access" = "^2.0"
-"example/special-skills/special-skill" = "^0.3"
-
-# 没有 Release 或明确需要源码开发版本时，Git 模式必须显式声明。
-[sources."example/special-skills/special-skill"]
-kind = "git"
-ref = "main"
+"example/special-skills/special-skill" = { git = "main" }

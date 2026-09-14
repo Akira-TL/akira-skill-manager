@@ -68,9 +68,17 @@ AKM 根据 Project Requirement、exact repository source snapshots、`SKILL.md` 
 
 Package Snapshot 的 canonical 内容身份。v0 使用 `AKM-PACKAGE-V1`：只允许 regular files，按 relative path 的原始 UTF-8 bytes 排序，只编码 path、executable bool、file size 与 exact bytes 的 SHA-256；时间戳、owner/group、普通权限和 archive metadata 不参与。最终表达为 `sha256:<64 lowercase hex>`。
 
-## Lock Record
+## Project Requirement Record
 
-一个已解析 Package 的可重建记录，保存 exact repository source、actual package-root、`SKILL.md.name`、Package Content Digest 和可选 manifest-declared dependency edges。Release source 额外保存规范化 SemVer、实际 tag、exact commit 与 immutable signal；source archive bytes 不是长期 identity。
+`akm.lock` 中对 `akm.toml` 顶层 requirement 的规范化语义记录。Release requirement 保存 coordinate + version requirement；Git requirement 保存 coordinate + requested ref。`frozen` 比较 Requirement Set 语义而不是 `akm.toml` 原始 bytes。
+
+## Repository Lock Record
+
+`akm.lock` 中 source provenance 的唯一记录。Release source 保存 repository coordinate、规范化 SemVer、actual tag、exact commit 与 immutable signal；Git source 保存 repository coordinate 与 exact commit。Package Record 不重复这些字段。
+
+## Package Lock Record
+
+`akm.lock` 中一个已解析 Package 的精简记录，只保存完整 coordinate、actual package-root、Package Content Digest 与 exact manifest-declared dependency edges；依赖边只写 `owner/repo/package`，其 exact source 由对应 Repository Lock Record 唯一决定。
 
 ## Package Store
 

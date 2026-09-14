@@ -26,6 +26,7 @@ Matt Engineering 使用 canonical workflow role 名称作为 GitHub label。映�
 - Package Snapshot 使用 `AKM-PACKAGE-V1` canonical content digest：独立 nested Skill 从祖先 snapshot 裁掉，v0 禁止 symlink/特殊文件，只编码 portable relative path、source Git executable bit 与 exact bytes；Package Store 直接以 `content-digest` 寻址，项目只链接 immutable Store。
 - Repository 默认零配置发现合法 `SKILL.md`；可选 root-level `akm-repo.toml` 只用于过滤 discovery 范围，不能定义或伪造 Package 身份。
 - 产品能力族通过 Router Skill + 可见 transitive Skill dependencies 形成，不通过 bundle Artifact 表达。
+- `akm.toml` 只保存 top-level requirements：Release 用 version string，Git 用 `{ git = "<ref>" }`；`akm.lock` 固定为 canonical `requirement -> repository -> package` 三层结构，source provenance 不在 Package Record 重复；同一 repository 不允许多个 source binding。
 - Project Skill Library 按 `<owner>/<repo>/<package>` 分层，不在 AKM 核心中扁平化同名 Skill；Skill discovery 交给 executor adapter/执行器。
 - 运行时共享能力必须显式写成 Skill dependency；不允许 Package 依赖 Package Root 外的 runtime 文件。
 - 可选 `DEPENDENCIES.md` 用于 Agent 检查复杂软件/环境依赖；AKM 只对可选 Manifest 中少量常见软件要求做基础只读探测，不负责自动修复宿主环境。

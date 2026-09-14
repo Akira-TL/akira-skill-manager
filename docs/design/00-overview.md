@@ -38,6 +38,8 @@
 - 同名 Skill 在 AKM library 层可以共存；最终 discovery 交给 executor adapter/执行器；
 - Package snapshot 以 `AKM-PACKAGE-V1` canonical tree hash 计算 `content-digest`：独立 nested Skill 从祖先 snapshot 裁掉，v0 禁止 symlink/特殊文件，只保留 relative path、executable bit 与 exact bytes；
 - Package Store 直接以 `content-digest` 寻址并跨来源去重；Package payload 机器级共享且 immutable；
+- `akm.toml` 只保存 top-level requirements：Release 用 version string，Git 用 `{ git = "<ref>" }`；同一 repository 不允许混用多个 Git ref 或 Release/Git source；
+- `akm.lock` 采用 canonical `requirement -> repository -> package` 三层结构，source provenance 只写一次，Package Record 只保存 `package-root`、`content-digest` 与 exact dependency edges；
 - 当前宿主依赖状态单独写入 `.akm/dependencies.lock`，永不改 Package 文件；
 - AKM 只基础探测少量常见软件，不负责自动安装/修复宿主依赖。
 
@@ -83,11 +85,9 @@ v0 不提前引入：
 
 ## 下一步仍需收敛
 
-- Git source 与 Release source 同 repo 混用是否完全禁止；
 - `.akm/dependencies.lock` 的最终字段与状态失效规则；
 - Project Skill Library 到不同 executor 的发现适配；
 - version range 的最终 grammar；
-- Lock 的 canonical TOML 结构；
 - Git Source Cache GC 与 Package Store GC 的策略；
 - optional dependencies / feature flags 是否需要进入后续版本。
 

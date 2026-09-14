@@ -247,17 +247,14 @@ repositories:
 
 packages:
   owner/repo/package
-  SKILL.md.name
   package-root
   content digest
-  optional manifest digest
-  optional dependencies document digest
 
 edges:
-  manifest-declared exact dependency edges
+  manifest-declared exact dependency edges（只保存 owner/repo/package）
 
 common software requirements:
-  optional manifest [software]
+  optional manifest [software]（用于 dependency checking，不复制进 akm.lock）
 
 warnings:
   optional dependency checks still requiring Agent inspection
@@ -327,7 +324,7 @@ parse target/project manifest
 
 ## 14. Frozen / offline
 
-`frozen`：只接受 Lock 的 exact source snapshot、package-root、content digest 和 graph，不重新选择。
+`frozen`：先比较当前 `akm.toml` 解析后的 canonical Requirement Set 与 Lock 中 `[[requirement]]`；不一致返回 `FrozenRequirementMismatch`。一致时只接受 Lock 的 exact source snapshot、package-root、content digest 和 graph，不重新选择。
 
 `offline`：不访问 GitHub、不 fetch Git；只能使用本地 cache/Store 与 Lock。
 
@@ -352,6 +349,8 @@ parse target/project manifest
 - `InvalidSkillMetadata`；
 - `InvalidOptionalManifest`；
 - `DependencyCycle`；
+- `RepositorySourceConflict`；
+- `FrozenRequirementMismatch`；
 - `UnsupportedPackageFileType`；
 - `InvalidPackagePath`；
 - `PackagePathCollision`；

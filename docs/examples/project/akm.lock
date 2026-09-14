@@ -1,5 +1,19 @@
 lock-version = 1
-manifest-digest = "sha256:1111111111111111111111111111111111111111111111111111111111111111"
+
+[[requirement]]
+coordinate = "Akira-TL/matt-skills/ask-matt"
+source-kind = "github-release"
+version = "^1.4"
+
+[[requirement]]
+coordinate = "Akira-TL/skills/browser-access"
+source-kind = "github-release"
+version = "^2.0"
+
+[[requirement]]
+coordinate = "example/special-skills/special-skill"
+source-kind = "git"
+ref = "main"
 
 [[repository]]
 coordinate = "Akira-TL/matt-skills"
@@ -9,52 +23,48 @@ tag = "v1.4.3"
 commit = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
 immutable = true
 
-[[package]]
-coordinate = "Akira-TL/matt-skills/ask-matt"
-name = "ask-matt"
+[[repository]]
+coordinate = "Akira-TL/skills"
 source-kind = "github-release"
-version = "1.4.3"
-commit = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-package-root = "skills/engineering/ask-matt"
-content-digest = "sha256:3333333333333333333333333333333333333333333333333333333333333333"
-manifest-digest = "sha256:4444444444444444444444444444444444444444444444444444444444444444"
-dependencies-doc-digest = "sha256:5555555555555555555555555555555555555555555555555555555555555555"
-dependencies = [
-  "Akira-TL/matt-skills/implement@1.4.3",
-  "Akira-TL/matt-skills/wayfinder@1.4.3",
-]
-
-[[package]]
-coordinate = "Akira-TL/matt-skills/implement"
-name = "implement"
-source-kind = "github-release"
-version = "1.4.3"
-commit = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-package-root = "skills/engineering/implement"
-content-digest = "sha256:6666666666666666666666666666666666666666666666666666666666666666"
-dependencies = []
+version = "2.1.0"
+tag = "2.1.0"
+commit = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+immutable = false
 
 [[repository]]
 coordinate = "example/special-skills"
 source-kind = "git"
-requested-ref = "main"
 commit = "0123456789abcdef0123456789abcdef01234567"
 
 [[package]]
+coordinate = "Akira-TL/matt-skills/ask-matt"
+package-root = "skills/engineering/ask-matt"
+content-digest = "sha256:3333333333333333333333333333333333333333333333333333333333333333"
+dependencies = [
+  "Akira-TL/matt-skills/implement",
+  "Akira-TL/matt-skills/wayfinder",
+]
+
+[[package]]
+coordinate = "Akira-TL/matt-skills/implement"
+package-root = "skills/engineering/implement"
+content-digest = "sha256:6666666666666666666666666666666666666666666666666666666666666666"
+dependencies = []
+
+[[package]]
+coordinate = "Akira-TL/matt-skills/wayfinder"
+package-root = "skills/planning/wayfinder"
+content-digest = "sha256:8888888888888888888888888888888888888888888888888888888888888888"
+dependencies = []
+
+[[package]]
+coordinate = "Akira-TL/skills/browser-access"
+package-root = "browser-access"
+content-digest = "sha256:9999999999999999999999999999999999999999999999999999999999999999"
+dependencies = []
+
+[[package]]
 coordinate = "example/special-skills/special-skill"
-name = "special-skill"
-source-kind = "git"
-commit = "0123456789abcdef0123456789abcdef01234567"
 package-root = "unusual/path/special-skill"
 content-digest = "sha256:7777777777777777777777777777777777777777777777777777777777777777"
 dependencies = []
-
-[[software]]
-package = "Akira-TL/matt-skills/ask-matt"
-name = "git"
-requirement = ">=2.40"
-
-[[software]]
-package = "Akira-TL/matt-skills/ask-matt"
-name = "gh"
-requirement = ">=2.45"
