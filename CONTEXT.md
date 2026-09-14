@@ -38,7 +38,7 @@ GitHub SemVer Release 解析得到的 actual tag + exact commit 对应 repositor
 
 ## Package Manifest
 
-Package Root 中可选的 `akm-package.toml`。它声明结构化 Skill dependencies 与 AKM 能基础探测的常见软件 requirements；不复制 `SKILL.md.name` 或 GitHub Release version。
+Package Root 中可选的 `akm-package.toml`。Schema 1 的 `[dependencies]` 属于 Skiloom Core Skill dependency graph；`[software]` 是同一物理 Manifest 中已登记的 Host Observation Extension attachment。Manifest 不复制 `SKILL.md.name` 或 GitHub Release version；不支持 Host Observation Extension 不会使 otherwise-valid Package 失去 Core conformance。
 
 ## Dependency Check File
 
