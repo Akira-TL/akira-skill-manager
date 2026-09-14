@@ -17,6 +17,7 @@
 9. [`package-snapshot-digest.md`](package-snapshot-digest.md)
 10. [`project-activation.md`](project-activation.md)
 11. [`activation-runtime-state.md`](activation-runtime-state.md)
+12. [`dependency-runtime-state.md`](dependency-runtime-state.md)
 
 ## 已明确的 v0 方向
 
@@ -91,7 +92,7 @@ v0 不提前引入：
 
 ## 下一步仍需收敛
 
-- `.agents/.akm/dependencies.lock` 的最终字段与状态失效规则；
+- `.agents/.akm/dependencies.lock` 的最终字段与状态失效规则（当前见 Proposed [`dependency-runtime-state.md`](dependency-runtime-state.md)）；
 - version range 的最终 grammar；
 - Git Source Cache GC 的具体 LRU/size/age 策略；
 - optional dependencies / feature flags 是否需要进入后续版本。

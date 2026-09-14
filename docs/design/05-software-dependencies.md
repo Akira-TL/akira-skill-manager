@@ -2,6 +2,8 @@
 
 状态：Working Draft
 
+`.agents/.akm/dependencies.lock` 的进一步精简候选见 [`dependency-runtime-state.md`](dependency-runtime-state.md)；在该候选正式 Accepted 前，本文件现有 state schema 仅作旧工作草案参考。
+
 ## 1. Package 最低条件仍只有 `SKILL.md`
 
 软件依赖能力是可选增强，不影响普通 Skill 安装。
