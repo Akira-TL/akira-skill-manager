@@ -16,6 +16,10 @@ AKM v0 的 GitHub 分发坐标，形式为 `<owner>/<repo>/<package>@<version-or
 
 Release source 中的 repository 级版本作用域。v0 只接受 SemVer；GitHub tag 可以使用可选前导 `v`，例如 `v1.4.0` 规范化为 `1.4.0`。Release version 最终锁定实际 tag 与 exact commit，再在该 repository snapshot 中 discovery Skill Package。
 
+## Release Version Requirement
+
+Class R 对 GitHub Release repository version 的约束语言。v0 使用 Cargo-style default/caret/tilde/wildcard/comparison/comma-intersection semantics；不支持 npm `||` / hyphen range / whitespace-as-AND。多个同 repository requirement 共同约束同一个 exact Release snapshot；explicit Git binding 时同 repository Release range 不参与 commit selection。
+
 ## Git Source
 
 没有合适 Release 或明确需要源码版本时显式使用的 source。用户 ref 最终解析为 exact commit；Package path 在该 commit 的 tracked tree 中通过 `SKILL.md` discovery 获得。
@@ -66,7 +70,7 @@ Package Root 中可选、不可变的 `DEPENDENCIES.md`。它是 Package author 
 
 ## Resolved Graph
 
-AKM 根据 Project Requirement、exact repository source snapshots、`SKILL.md` discovery 与可选 Manifest 求出的完整已知 dependency graph。没有 Manifest 的 Skill 是合法 leaf node。
+AKM 根据 Project Requirement、exact repository source snapshots、`SKILL.md` discovery 与可选 Manifest 求出的完整已知 dependency graph。没有 Manifest 的 Skill 是合法 leaf node；Skill dependency cycle 本身合法，只要 repository source/version constraints 可以形成完整 deterministic resolution。
 
 ## Package Snapshot
 

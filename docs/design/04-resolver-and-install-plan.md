@@ -1,5 +1,9 @@
 # Dependency Resolver 与 Install Plan v0 工作草案
 
+状态：Working Draft（reference manager orchestration）
+
+Class R 的 normative resolution contract 已固定在 [`resolver-conformance.md`](resolver-conformance.md) 与 [ADR 0014](../adr/0014-deterministic-release-resolver.md)。本文件继续描述 reference manager 如何把 Core resolution 与 source acquisition、Package snapshot、activation、Host Observation 串成 Install Plan；其中 cache/materialization/CLI 细节不构成 Class R conformance requirement。
+
 ## 1. Resolver 的对象
 
 AKM v0 直接解析 GitHub source：
@@ -158,16 +162,18 @@ Git source 下，如果一个有 Manifest 的 Skill 声明同 repository sibling
 
 Version resolver 只在 initial resolution 或显式 resolution-changing operation（例如 `update`）中运行；**已有匹配 Lock 的普通 `sync` 不运行版本求解器**。
 
-Release resolution：
+Release resolution 的 normative 语义见 [`resolver-conformance.md`](resolver-conformance.md)：
 
-1. 只枚举可规范化为 SemVer 的 GitHub Release；
-2. `vX.Y.Z` 与 `X.Y.Z` 规范化为同一版本；规范化后重复则报告 `AmbiguousReleaseVersion`；
-3. 合并作用于同一 repository 的全部 Release ranges；
-4. 按 #7 最终确定的选择策略产生 candidate Release；
-5. prerelease 只有显式允许时参与；
-6. candidate Release tag 必须解析到 exact commit，并且该 snapshot 必须能 discovery 到所需 `SKILL.md.name`；
-7. 若当前已有 Confirmed Resolution，resolver 输出 candidate 与旧 Lock 的差异，但在显式接受前不修改 Lock 或 activation；
-8. 如果旧 Lock 中同一 Release tag 的 commit 与当前远端解析不同，报告 `ReleaseRetargeted`，不能把 retarget 当成普通升级自动接受。
+1. Release requirement 使用 Cargo-style default/caret/tilde/wildcard/comparison/comma-intersection profile；
+2. `vX.Y.Z` 与 `X.Y.Z` 规范化为同一版本；同 normalized version 重复报告 `AmbiguousReleaseVersion`；
+3. 同 repository 的全部 Release requirements 共同约束 repository candidate；
+4. candidate 按 SemVer precedence 从高到低，并按 canonical repository/package ordering 做 deterministic backtracking；
+5. prerelease 使用 explicit opt-in semantics；
+6. build metadata 不参与 precedence；search 到达多个 equal-precedence Release 时报告 `AmbiguousReleasePrecedence`；
+7. candidate Release tag 必须解析到 exact commit，并且该 snapshot 必须能 discovery 到所需 `SKILL.md.name`；
+8. previous Lock 不作为 hidden candidate preference，只用于 candidate diff / acceptance；
+9. 若当前已有 Confirmed Resolution，resolver 输出 candidate 与旧 Lock 的差异，但在显式接受前不修改 Lock 或 activation；
+10. source retarget / integrity 的 fatal trust 处理由 #9 负责，不能作为普通 solver fallback 隐藏。
 
 Git ref 同理：Manifest/Project Intent 可以保存 `main` 等 requested ref，但已有 Lock 固定的是 exact commit；只有 initial resolution 或显式 update 才重新解析 ref。
 
@@ -190,13 +196,13 @@ AKM graph node has no declared outgoing Skill edges
 
 AKM 不从 `SKILL.md` 自然语言、目录名称或引用文件中猜测结构化 dependency。
 
-Dependency graph v0 不允许 cycle：
+Dependency graph v0 允许 cycle：
 
 ```text
 A -> B -> C -> A
 ```
 
-发现时报告完整 cycle path。
+cycle 本身不是 resolution error。Resolver 保存全部 exact edges，并通过 visited/expanded Package state 避免无限展开；只有 cycle 中形成的 repository source/version constraints 无法满足时才报告真正的 resolution conflict。
 
 ## 9. 同名 Skill 与扁平 activation
 
@@ -242,9 +248,11 @@ owner/repo@main --git
 
 Repository-wide target 只作为用户顶层意图；Manifest dependency 必须精确到 `owner/repo/package`。
 
-## 11. Resolution 输出
+## 11. Resolution / Plan 输出边界
 
-至少包含：
+Class R candidate resolution 至少包含 exact repository bindings、Package identities/content digests 与 manifest-declared edges。Reference manager 随后可以在同一个 Install Plan 中附加 activation 与 Host Observation 计划；后两者不属于 Class R selection semantics。
+
+组合后的 reference plan 至少包含：
 
 ```text
 repositories:
@@ -370,15 +378,18 @@ parse Project Intent
 
 至少区分：
 
+- `InvalidReleaseRequirement`；
 - `UnavailableRelease`；
+- `UnsatisfiableReleaseRequirements`；
+- `UnresolvableDependencyGraph`；
 - `AmbiguousReleaseVersion`；
+- `AmbiguousReleasePrecedence`；
 - `ReleaseRetargeted`；
 - `UnavailableGitRef`；
 - `PackageNotFound`；
 - `AmbiguousPackageDiscovery`；
 - `InvalidSkillMetadata`；
 - `InvalidOptionalManifest`；
-- `DependencyCycle`；
 - `RepositorySourceConflict`；
 - `ProjectIntentLockMismatch`；
 - `FrozenRequirementMismatch`；

@@ -125,7 +125,7 @@ source-kind = "git"
 ref = "main"
 ```
 
-Requirement Record 保存 `akm.toml` 解析后的语义，不保存原始 TOML bytes。因此只改注释、空白、表项顺序或等价排版不会让 Lock 失效。
+Requirement Record 保存 `akm.toml` 解析后的语义，不保存原始 TOML bytes。Release `version` 使用 [`resolver-conformance.md`](resolver-conformance.md) 定义的 canonical Release Version Requirement；因此只改注释、空白、table ordering、comparator ordering 或 Cargo-default/caret 等 canonical-equivalent 写法不会让 Lock 失效。v1 不要求证明任意两个不同 range 表达式的集合代数等价。
 
 ### 4.2 Repository Record
 
