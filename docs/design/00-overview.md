@@ -1,8 +1,8 @@
-# AKM v0 核心协议总览
+# AKM v0 协议工作草案
 
 ## 本阶段范围
 
-当前只固定包管理核心模型，不实现 CLI，也不迁移旧 `akira-skills` installer。
+当前仍处于协议探索与收敛阶段，不实现 CLI，也不迁移旧 `akira-skills` installer。以下文档都是 working draft；在 Skill 本体目录/文件结构、Package 与 Skill 的基数关系等基础问题讨论完成前，不视为稳定协议。
 
 设计文件：
 
@@ -13,7 +13,9 @@
 5. [`05-software-dependencies.md`](05-software-dependencies.md)
 6. [`06-module-boundaries.md`](06-module-boundaries.md)
 
-## 已固定的核心决定
+## 当前候选设计（未定稿）
+
+以下条目只是当前方案，需要继续通过 Skill 目录结构、真实仓库发布场景和依赖案例验证；其中任何一项都可能修改或撤销。
 
 - 一个 Package 恰好发行一个 Skill；
 - Package Identity 使用 `namespace/skill-name`，与 repository 身份分离；
@@ -31,11 +33,10 @@
 - Package content 机器级共享，项目激活视图只使用 symlink；
 - remove 通过重新求解 dependency closure 完成，Store garbage collection 独立处理。
 
-## 关键不变量
+## 当前设计目标与假设
 
 ```text
 Repository != Package
-Package == one Skill
 Release == immutable Package@Version
 Manifest == intent/metadata
 Lock == exact resolved graph
@@ -46,7 +47,9 @@ Software requirement != installation method
 Resolution != execution
 ```
 
-## v0.1 推荐实现顺序
+## 协议稳定后的候选实现顺序
+
+在基础协议仍有开放问题时不进入实现；以下切片只用于记录未来可能的工程顺序。
 
 ### Slice 1：typed metadata
 
@@ -100,7 +103,17 @@ Resolution != execution
 
 到这里才具备实现 CLI/MCP surface 的稳定核心。
 
-## 仍明确留到后续的决策
+## 当前开放问题
+
+优先级最高：
+
+- 标准 Agent Skill 在源码仓、Package、Release Artifact 与安装后 Store 中分别采用什么目录/文件结构；
+- Package 与 Skill Entry 是 1:1、1:N，还是同时支持普通 Package 与聚合 Package；
+- `SKILL.md`、AKM Package Manifest、Package 根目录之间的相对位置；
+- 一个多 Skill repository 如何选择性构建和发布单个 Package，如何表达共享文件；
+
+随后再决定：
+
 
 - 首个远端 Package Index 的实际托管格式；
 - GitHub Release publish automation；

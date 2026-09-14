@@ -1,7 +1,9 @@
 # ADR 0003：Package 依赖声明与 Source Policy 分离
 
-- 状态：Accepted
+- 状态：Proposed
 - 日期：2026-09-14
+
+> 当前协议尚未定稿。该提案仍需结合 Skill 文件结构、Package 粒度与真实发布场景继续验证；不得作为实现前提。
 
 ## 背景
 

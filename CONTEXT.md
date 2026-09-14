@@ -2,7 +2,7 @@
 
 ## Package
 
-AKM 的最小发行与依赖解析单位。一个 Package 对应一个独立可安装的 Agent Skill，不等同于承载源码的 Git repository。
+AKM 的版本化发行与依赖解析单位，不等同于承载源码的 Git repository。一个 Package 暴露一个还是多个 Skill Entry 当前仍是开放设计问题。
 
 ## Package Identity
 
@@ -10,11 +10,11 @@ AKM 的最小发行与依赖解析单位。一个 Package 对应一个独立可�
 
 ## Skill Entry
 
-Package 对 Agent 暴露的 Skill 入口。当前模型中一个 Package 恰好包含一个 Skill Entry；其 `SKILL.md` 中的 `name` 是项目激活时占用的 Skill 名称。
+Package 对 Agent 暴露的一个标准 Agent Skill。Skill Entry 以 `SKILL.md` 为核心；它在 Package 内的目录位置以及一个 Package 可包含多少个 Skill Entry 当前仍待设计。
 
 ## Release
 
-某个 Package Identity 的一个不可变版本。Release 使用语义化版本标识，并指向一个可校验的 Release Artifact。
+某个 Package Identity 的一个版本化、不可变发行快照，并指向一个可校验的 Release Artifact。具体版本约束语法仍由协议设计决定。
 
 ## Release Artifact
 
@@ -22,7 +22,7 @@ Release 的可下载、不可变归档。它包含 Package Manifest 与完整 Sk
 
 ## Package Manifest
 
-随 Package 源码与 Release Artifact 一起存在的结构化元数据。它声明 Package Identity、版本、Skill Entry、Skill 依赖、软件依赖与兼容性，但不自行决定自己是否可信。
+随 Package 源码与 Release Artifact 一起存在的结构化元数据。它声明 Package Identity、版本、Skill Entry 信息、Skill 依赖、软件依赖与兼容性，但不自行决定自己是否可信。
 
 ## Package Index
 
