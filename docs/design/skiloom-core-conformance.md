@@ -57,7 +57,7 @@ Agent Skills Specification 已要求 `name` 与父目录名称一致；Skiloom d
 - MUST 在最终 Discovery Set 中 Package Name 不唯一时 fail closed；
 - MUST 使 Release source 与 Git source 在指向同一个 exact repository snapshot 时得到相同 discovery 结果。
 
-Repository Discovery Control 的公开文件名/namespace 可以随 #14 命名决策迁移；其**语义角色与确定性行为**属于 Core，具体品牌拼写不是本决定要固定的内容。
+Repository Discovery Control 的公开文件名已由 ADR 0016 固定为 `skiloom-repo.toml`；其**语义角色与确定性行为**属于 Core。未来若再改变公开 filename/namespace，必须通过显式 protocol migration，而不是静默改名。
 
 ### 3.3 Optional Package Manifest 的 Core 边界
 
@@ -82,11 +82,11 @@ Core Package implementation：
 - MUST 从祖先 snapshot 中裁掉已经进入最终 Discovery Set 的 nested Skill Roots；
 - MUST 对 v0 snapshot 拒绝 symlink 与其他已禁止的特殊文件类型；
 - MUST 使用已接受的 portable path 校验、raw UTF-8 ordering、source Git executable bit 与 exact file bytes；
-- MUST 使用 `SKILOOM-PACKAGE-V1` 当前已接受的 canonical binary framing，直到 #14/后续 format migration 通过显式新 format version 替换；
+- MUST 使用 `SKILOOM-PACKAGE-V1` 当前已接受的 canonical binary framing；任何后续 framing/domain-tag 变化都必须使用显式的新 format version；
 - MUST 让相同 Package Snapshot 在不同 source/repository/transport 下得到相同 `content-digest`；
 - MUST NOT 把 Git commit、GitHub archive digest、临时 checkout metadata 或 source provenance 混入 Package Content Digest。
 
-公开品牌 rename 可以迁移 format domain tag，但 MUST 通过新的显式 snapshot format version 完成；不得在同一个 format identifier 下改变 digest bytes。
+ADR 0016 已把 pre-standard working-draft domain tag 收敛为公开 `SKILOOM-PACKAGE-V1`。从正式 v0 开始，不得在同一个 format identifier 下改变 digest bytes；未来变更必须定义新的显式 snapshot format version。
 
 ### 3.5 Source 与 repository-scoped resolution
 
@@ -214,7 +214,7 @@ Class R 依赖 Class P。
 
 - 实现当前 mandatory GitHub source profile；
 - 实现 repository-scoped source binding；
-- 实现 #7 最终固定的 version requirement grammar、constraint intersection、candidate ordering、prerelease 与 conflict semantics；
+- 实现 [`resolver-conformance.md`](resolver-conformance.md) 固定的 version requirement grammar、constraint intersection、candidate ordering、prerelease 与 conflict semantics；
 - 实现 Project Intent / Confirmed Resolution 分离；
 - 读取并验证 canonical Lock；
 - 对允许产生新 resolution 的操作生成 deterministic candidate/Lock 结果；

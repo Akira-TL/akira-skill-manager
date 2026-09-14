@@ -2,6 +2,8 @@
 
 状态：Accepted
 
+Class R 的 Release candidate / source trust 边界同时受 [`resolver-conformance.md`](resolver-conformance.md)、[`source-trust-conformance.md`](source-trust-conformance.md)、ADR 0014 与 ADR 0015 约束。
+
 ## 1. 目标
 
 Skiloom v0 使用 GitHub Release 作为稳定版本选择入口，但 **不定义、也不要求任何 Skiloom 专用 per-Skill Release Asset**。
@@ -25,7 +27,7 @@ Git source
 
 ## 2. Release version 只接受 SemVer
 
-Skiloom Release resolver v0 只把下列 GitHub Release tag 识别为 Release version：
+Skiloom Release resolver v0 只从 published (`draft=false`) GitHub Release records 中，把下列 actual tag 识别为 Release version：
 
 ```text
 1.4.0
@@ -43,7 +45,7 @@ v1.4.0
 - 必须是合法 Semantic Versioning（SemVer）版本；
 - 允许且只允许一个前导 `v`；
 - `v` 不进入规范化版本值；
-- prerelease/build metadata 按 SemVer 语义解析；
+- prerelease/build metadata 按 SemVer 语义解析；GitHub `prerelease` / latest / timestamp / API ordering 不参与 Class R eligibility/order；
 - 非 SemVer Git tag 不进入 Release version resolver；如需使用，应显式走 Git source；
 - 如果同一 repository 同时存在 `1.4.0` 与 `v1.4.0` 两个 Release，它们规范化后冲突，返回 `AmbiguousReleaseVersion`，不得自动任选一个。
 
@@ -51,7 +53,7 @@ v1.4.0
 
 ```text
 ^1.4
->=1.4 <2
+>=1.4, <2
 ~1.4
 ```
 
@@ -65,12 +67,14 @@ v1.4.0
 owner/repo/package@1.4.0
   -> select normalized Release 1.4.0
   -> record actual GitHub tag, e.g. v1.4.0
-  -> resolve tag to exact commit
+  -> peel actual tag to exact commit
   -> obtain repository source snapshot for that commit
   -> apply skiloom-repo.toml discovery policy if present
   -> discover SKILL.md roots
   -> select requested package(s)
 ```
+
+`target_commitish` 不作为 exact source identity；existing tag 的 authority 是 actual tag 最终解析出的 exact commit。
 
 Skiloom v0 不查找、下载或定义：
 

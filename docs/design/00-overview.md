@@ -19,6 +19,10 @@
 11. [`activation-runtime-state.md`](activation-runtime-state.md)
 12. [`dependency-runtime-state.md`](dependency-runtime-state.md)
 13. [`package-manifest-schema.md`](package-manifest-schema.md)
+14. [`resolver-conformance.md`](resolver-conformance.md)
+15. [`source-trust-conformance.md`](source-trust-conformance.md)
+16. [`skiloom-core-conformance.md`](skiloom-core-conformance.md)
+17. [`skiloom-public-namespace.md`](skiloom-public-namespace.md)
 
 ## 已明确的 v0 方向
 
@@ -92,11 +96,11 @@ v0 不提前引入：
 - repository runtime shared directory；
 - 项目直接引用 mutable Git checkout。
 
-## 下一步仍需收敛
+## 当前决策状态
 
-- version range 的最终 grammar；
-- Git Source Cache GC 的具体 LRU/size/age 策略；
-- optional dependencies / feature flags 是否需要进入后续版本。
+Wayfinder v0 foundational decision map 已收敛：Package/Skill cardinality、discovery、Manifest ownership、Release/Git source、Project Intent/Confirmed Resolution、deterministic Resolver、Source/Trust、Package Snapshot identity、Activation ownership、Host Observation boundary、Core conformance 与 public namespace 都已有 Accepted source of truth。
+
+下一阶段是把这些分散的 Accepted decisions collapse 成一份 versioned normative Spec，并补齐 machine-readable grammar/schema 与 P/R/A conformance fixtures。Git Source Cache GC 的 LRU/size/age 策略属于 reference implementation；optional dependencies / feature flags 明确不进入 v0 Schema 1，不再阻塞 v0 formalization。
 
 ## 协议稳定后的候选实现顺序
 

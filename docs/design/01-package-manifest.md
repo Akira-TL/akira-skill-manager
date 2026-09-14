@@ -1,6 +1,8 @@
-# Package Manifest v0 工作草案
+# Package Manifest v0 设计背景
 
-Schema 1 的进一步收敛候选见 [`package-manifest-schema.md`](package-manifest-schema.md)。在该候选 Accepted 前，本文件仍保留既有工作草案上下文。
+状态：Superseded as normative source
+
+Schema 1 已由 [`package-manifest-schema.md`](package-manifest-schema.md) 与 ADR 0013 接受并取代本文件作为 normative source。本文件只保留早期设计背景；若与 accepted schema、Core conformance 或 Host Observation boundary 冲突，以后者为准。
 
 ## 1. 定位
 
