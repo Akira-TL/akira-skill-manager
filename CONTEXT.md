@@ -119,3 +119,11 @@ AKM v0 不执行 destructive automatic Package Store GC。项目 remove 只移�
 ## Install Plan
 
 在安装/同步前形成的 source 获取、Skill discovery、Package snapshot、Store 变化、`.agents/skills/` 扁平 activation preflight/rename 以及依赖检查计划。AKM 不把缺失宿主软件自动转换为系统安装动作。
+
+## Skiloom Core
+
+Skiloom 面向独立实现的最小互操作协议面，只标准化会改变 Package discovery、dependency graph、source resolution、Confirmed Resolution、Package Content Digest 或 activation ownership 的可观察语义；CLI UX、缓存/Store 物理布局、平台 materialization 优化与宿主探测实现不因 reference manager 采用而自动成为 Core。
+
+## Core Conformance Class
+
+Skiloom Core 的可测试能力声明。Class P 负责 deterministic Package model，Class R 在 P 之上负责 source/resolution/Lock，Class A 在 R 之上负责 project activation safety；只有同一 Core version 同时通过 P、R、A 的实现才是 Full Core Manager。Host Observation 是独立 extension，不属于 Full Core conformance。
