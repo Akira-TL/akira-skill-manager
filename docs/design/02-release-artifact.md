@@ -119,14 +119,23 @@ screenshots.zip
 
 ### Git 模式
 
-显式 `--git` 时，不依赖 Release asset 名，而是在 checkout 中扫描同时含：
+显式 `--git` 时，不依赖 Release asset 名，也不能假设 Package 位于固定目录。
+
+AKM 在 exact commit 的 tracked Git tree 中枚举 `akm-package.toml`；每个 Manifest 的父目录是 Package Root candidate，并要求同目录存在 `SKILL.md`。
+
+随后校验：
 
 ```text
-SKILL.md
-akm-package.toml
+basename(package-root)
+== package.name
+== SKILL.md.name
 ```
 
-的目录作为 Package Root。
+指定 `owner/repo/package` 时按 `package.name` 筛选；省略 package 时选择全部合法 candidate。发现的 repository-relative `package-root` 写入 Lock。
+
+同名 Package、嵌套 Package Root 或零 candidate 都必须返回明确 discovery error，不通过目录顺序猜测。
+
+详细算法见 `04-resolver-and-install-plan.md`。
 
 ## 6. 归档格式
 
@@ -200,9 +209,9 @@ resolve GitHub Release
   -> validate SKILL.md
   -> validate DEPENDENCIES.md exists
   -> insert immutable snapshot into machine Store
-  -> materialize project Skill Library leaf
+  -> materialize project Skill Library leaf as read-only Store link
   -> run common dependency probes
-  -> update project-local DEPENDENCIES.md status
+  -> update .akm/dependencies.lock
 ```
 
 ## 10. Git fallback 不是 Release fallback
@@ -238,7 +247,7 @@ machine store:
   sha256/<digest>/...
 
 project library:
-  .akm/skills/Akira-TL/matt-skills/ask-matt/...
+  .akm/skills/Akira-TL/matt-skills/ask-matt -> machine store entry
 ```
 
-Project leaf 允许把不可变 payload 以 symlink 形式复用，同时保留一个项目侧可写的 `DEPENDENCIES.md` 状态文件。
+Project leaf 直接链接完整不可变 Package Root。宿主软件与特殊依赖的当前状态统一保存在 `.akm/dependencies.lock`，不修改或复制 Package 内的 `DEPENDENCIES.md`。

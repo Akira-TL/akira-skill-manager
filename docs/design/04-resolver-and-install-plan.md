@@ -104,13 +104,15 @@ Git 模式至少锁定：
 repository
 requested ref
 exact commit
-selected Package Root(s)
+discovered Package Root(s)
 content digest
 ```
 
-Release 不存在时不能自动改用 Git。
+Release 不存在时不能静默自动改用 Git；用户必须显式选择 Git 模式。
 
-Git 与 Release 混用同一个 repository 的详细约束仍需单独设计；v0 应优先避免同一 project resolution 同时从同一 repo 的 Release 与 Git checkout 取不同 Package。
+一个 project resolution 中，同一个 `owner/repo` 只绑定一种 source：要么某个 GitHub Release，要么某个 exact Git commit。v0 不允许同一 repository 一部分 Package 来自 Release、另一部分来自 Git checkout。
+
+当顶层目标 `owner/repo/package@ref --git` 绑定了 Git source 后，该 repository 内的 sibling Skill dependency 自动复用同一个 exact commit，不需要为每个 sibling 再次声明 Git source。例如 Git checkout 中 `ask-matt` 依赖同仓 `implement`，resolver 应直接在同一 checkout 的已发现 Package 中解析 `implement`。
 
 ## 6. Resolver 输入
 
@@ -155,7 +157,59 @@ B requires owner/repo/y >=3
 
 因为 x/y 属于同一 repository Release version 空间，没有一个 Release 同时满足，必须报告版本冲突。
 
-## 8. Repository-wide top-level install
+## 8. Git checkout 后的 Package discovery
+
+Git 模式不能假设 Package 位于 `skills/<name>` 或 repository 根。`owner/repo/package` 只给出了局部 Package name，并没有给出源码路径，因此 clone 后必须先发现 Package Root。
+
+原生 AKM repository 的 discovery anchor 是 `akm-package.toml`，不是目录命名猜测。
+
+推荐算法：
+
+1. clone/fetch repository，并把 requested ref 解析成 exact commit；
+2. 基于该 commit 的 **tracked Git tree** 枚举所有名为 `akm-package.toml` 的文件，而不是扫描 `.git`、ignored build output 或用户本地未跟踪文件；
+3. 每个 `akm-package.toml` 的父目录成为 Package Root candidate；
+4. candidate 同目录必须存在 `SKILL.md`；
+5. 解析 `package.name` 与 `SKILL.md.name`；
+6. 校验：
+
+```text
+basename(package-root)
+== package.name
+== SKILL.md.name
+```
+
+7. repository 内 `package.name` 必须唯一；同名多个 candidate 直接报告 `AmbiguousPackageDiscovery`，不靠“选第一个”解决；
+8. Package Root 不能互相嵌套，否则外层 Package payload 会隐式包含另一个 Package；发现嵌套 candidate 时 repository validation 失败；
+9. 如果用户指定 `owner/repo/package`，只选择 `package.name == selector` 的 candidate；
+10. 如果用户指定 `owner/repo`，选择全部合法 candidate；
+11. Lock 保存每个选中 Package 的相对 `package-root` 与 exact commit，因此之后不需要再次猜测路径。
+
+例如 repository：
+
+```text
+repo/
+├── agent-tools/
+│   └── routers/
+│       └── ask-matt/
+│           ├── SKILL.md
+│           └── akm-package.toml
+└── engineering/
+    └── tdd/
+        ├── SKILL.md
+        └── akm-package.toml
+```
+
+安装：
+
+```text
+owner/repo/ask-matt@main --git
+```
+
+不需要用户知道 `agent-tools/routers/ask-matt`；AKM clone 后根据 manifest 发现它。
+
+如果 exact commit 中一个原生 AKM Package 都发现不到，native discovery 失败。只含 `SKILL.md`、没有 `akm-package.toml` 的第三方 repository 属于 raw Skill compatibility 路径，单独设计，不在 native discovery 中靠目录猜测偷偷合成 Package。
+
+## 9. Repository-wide top-level install
 
 用户可以显式安装：
 
@@ -173,7 +227,7 @@ owner/repo@1.4.0
 
 Repository-wide target 只允许作为用户顶层意图，不允许 Package dependency 写成 `owner/repo`。
 
-## 9. Resolution 输出
+## 10. Resolution 输出
 
 至少包含：
 
@@ -196,7 +250,7 @@ warnings:
 
 Resolver 不安装软件，也不决定特殊依赖如何解决。
 
-## 10. Install Plan
+## 11. Install Plan
 
 Planner 把 Resolution 与本地状态组合成：
 
@@ -227,29 +281,31 @@ Planner 把 Resolution 与本地状态组合成：
 ### Dependency Check
 
 - 对 `[software]` 中 AKM 已知常见软件运行只读 probe；
-- 更新项目侧 `DEPENDENCIES.md` Current status；
-- 标出仍需 Agent 检查的特殊依赖。
+- 把观察结果写入项目本地 `.akm/dependencies.lock`；
+- 对 Package 原始 `DEPENDENCIES.md` 只计算 digest、提示仍需 Agent 检查的特殊依赖，不修改 Package 文件；
+- Package 或依赖说明 digest 变化时，把旧特殊检查结果视为 stale/unknown。
 
 AKM 不生成 `apt/brew/winget/...` 修复动作。
 
-## 11. 执行顺序
+## 12. 执行顺序
 
 ```text
 parse project requirements
-  -> resolve repository releases / git commits
+  -> resolve repository releases / explicit git refs
+  -> for Git: fetch exact commit and discover Package Roots
   -> resolve package closure
   -> build fetch plan
-  -> fetch & verify Package Artifacts
+  -> fetch & verify Package Artifacts / Git snapshots
   -> put immutable payload in machine Store
   -> materialize hierarchical Project Skill Library
   -> run common software probes
-  -> update project-local DEPENDENCIES.md
-  -> write Lock atomically
+  -> update .akm/dependencies.lock
+  -> write akm.lock atomically
 ```
 
-需要修改宿主软件环境的工作发生在 AKM 之后：Agent 读取 `DEPENDENCIES.md`，说明缺口，获得用户明确同意后再使用当前环境真实可用的方式处理。
+需要修改宿主软件环境的工作发生在 AKM 之后：Agent 读取不可变 Package `DEPENDENCIES.md` 与 `.akm/dependencies.lock`，说明缺口，获得用户明确同意后再使用当前环境真实可用的方式处理；处理完成只更新 `.akm/dependencies.lock`。
 
-## 12. Frozen 与 offline
+## 13. Frozen 与 offline
 
 ### `frozen`
 
@@ -261,7 +317,7 @@ parse project requirements
 
 二者相互独立。
 
-## 13. remove / orphan / why
+## 14. remove / orphan / why
 
 删除顶层 target 后重新计算 dependency closure。
 
@@ -269,7 +325,7 @@ parse project requirements
 
 `why owner/repo/package` 从 Lock graph 反向构造依赖路径，不维护第二套 reverse-dependency 状态。
 
-## 14. 结构化错误
+## 15. 结构化错误
 
 至少区分：
 
@@ -279,6 +335,11 @@ parse project requirements
 - `DependencyCycle`；
 - `InvalidPackageManifest`；
 - `GitSourceNotExplicit`；
+- `PackageDiscoveryFailed`；
+- `PackageNotFound`；
+- `AmbiguousPackageDiscovery`；
+- `NestedPackageRoots`；
+- `RepositorySourceConflict`；
 - `ArtifactIntegrityMismatch`；
 - `UnsafeArtifact`。
 

@@ -56,11 +56,33 @@ akm install Akira-TL/matt-skills@<commit> --git
 Git 模式下：
 
 1. clone/fetch repository；
-2. checkout 精确 ref/commit；
-3. 扫描 Package Root；
-4. 指定 package 时只选择该 Package；
-5. 未指定 package 时选择全部发现的 Package；
-6. 仍按 Package dependency 递归解析其他 Skill Package。
+2. 将用户 ref 解析为 exact commit；
+3. 不假设 Package 所在目录，先对该 commit 的 tracked Git tree 做 Package discovery；
+4. 以 `akm-package.toml` 为原生 Package discovery anchor，其父目录必须同时含 `SKILL.md`；
+5. 校验 `basename(root) == package.name == SKILL.md.name`；
+6. 指定 package 时按 manifest 中的 `package.name` 选择，而不是按路径猜测；
+7. 未指定 package 时选择全部合法 Package Root；
+8. Lock 保存实际发现的 repository-relative Package Root；
+9. 同 repository 的 sibling dependency 复用同一个 exact commit；
+10. 仍按 Package dependency 递归解析其他 repository 的 Skill Package。
+
+例如用户只知道：
+
+```text
+owner/repo/ask-matt@main --git
+```
+
+而真实路径可能是：
+
+```text
+agent-tools/routers/ask-matt/
+```
+
+这不要求用户提前知道路径。AKM 在 checkout 后通过 `akm-package.toml` 找到 `package.name = "ask-matt"` 即可。
+
+Repository 内 `package.name` 必须唯一，Package Root 也不得互相嵌套；否则 `owner/repo/package` 无法稳定定位唯一 payload，应直接报 discovery error。
+
+只含 `SKILL.md`、没有 `akm-package.toml` 的 GitHub Skill 属于兼容发现问题，后续单独设计；原生 Package discovery 不通过目录猜测静默伪造 Manifest。
 
 Release 是稳定分发路径；Git 是开发、兼容和“尚未发布 Release”的显式路径。
 

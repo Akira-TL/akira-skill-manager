@@ -19,10 +19,10 @@ store
     ↓
 activation
     ↓
-common dependency probes -> project-local DEPENDENCIES.md
+common dependency probes -> .akm/dependencies.lock
 ```
 
-AKM 流程到依赖状态记录为止。特殊依赖后续由 Agent 读取 `DEPENDENCIES.md` 处理。
+AKM 流程到本地依赖状态记录为止。特殊依赖后续由 Agent 读取不可变 `DEPENDENCIES.md` 与 `.akm/dependencies.lock` 处理。
 
 ## `metadata`
 
@@ -70,7 +70,7 @@ fetch_asset(owner, repo, release, package)
 
 ```text
 checkout(owner, repo, ref) -> exact commit
-find_packages(checkout)
+discover_packages(exact_commit) -> validated package roots
 snapshot(package_root)
 ```
 
@@ -149,17 +149,14 @@ Store 内部可以 content-addressed；它不承担项目可见的 `owner/repo/p
 .akm/skills/<owner>/<repo>/<package>/
 ```
 
-Package leaf 是项目侧 activation overlay，而不是整个目录直接 symlink：
+Package leaf 直接链接 machine Store 中的完整不可变 Package Root：
 
 ```text
-SKILL.md            -> machine Store
-akm-package.toml    -> machine Store
-references          -> machine Store
-scripts             -> machine Store
-DEPENDENCIES.md     # project-local writable copy
+.akm/skills/<owner>/<repo>/<package>
+    -> <machine-store>/<exact-package-root>
 ```
 
-这样共享 Store 仍然不可变，同时依赖检查状态可以按项目记录。
+依赖检查状态与 Package payload 分离，统一保存在 `.akm/dependencies.lock`。
 
 executor adapter 如果需要把 Project Skill Library 转成某个执行器的 Skill discovery 结构，在 activation 之后工作；它不改变 core Package graph。
 
@@ -170,15 +167,17 @@ executor adapter 如果需要把 Project Skill Library 转成某个执行器的 
 职责只有：
 
 - 对 AKM 内建支持的常见 `[software]` requirement 做只读 probe；
-- 产出 `present / missing / incompatible / unknown`；
-- 更新项目侧 `DEPENDENCIES.md` 的 AKM status block；
+- 产出 `satisfied / missing / incompatible / unknown / blocked`；
+- 读写项目本地 `.akm/dependencies.lock`；
+- 根据 Package content/`DEPENDENCIES.md` digest 判断旧状态是否失效；
 - 报告还有多少特殊依赖需要 Agent 检查。
 
 Interface：
 
 ```text
 probe_common(requirements) -> DependencyObservations
-write_status(dependency_file, observations)
+load_dependency_state(project) -> DependencyState
+write_dependency_state(project, state)
 ```
 
 该 Module 不提供：

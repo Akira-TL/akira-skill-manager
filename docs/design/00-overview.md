@@ -31,7 +31,7 @@
 - 每个原生 Package 包含 `DEPENDENCIES.md`；
 - AKM 只基础探测少量常见软件并写状态，不负责自动安装/修复宿主依赖；
 - 特殊软件、硬件、服务、数据、授权等依赖由 Agent 根据 `DEPENDENCIES.md` 检查，涉及环境修改时先与用户确认；
-- Package payload 机器级共享，项目侧 Package leaf 可以作为 activation overlay 保存可写 dependency status。
+- Package payload 机器级共享且保持不可变，项目侧 Package leaf 可直接链接 Store；宿主依赖状态单独写入 `.akm/dependencies.lock`。
 
 ## 核心关系
 
@@ -68,7 +68,8 @@ v0 不提前引入：
 - GitHub Release tag/version 的严格命名规则；
 - Release asset integrity/attestation 的最小契约；
 - Git source 与 Release source 同 repo 混用是否完全禁止；
-- `DEPENDENCIES.md` 的精确可编辑区域/升级合并算法；
+- `.akm/dependencies.lock` 的最终字段与状态失效规则；
+- raw GitHub Skill（只有 `SKILL.md`、没有 `akm-package.toml`）的兼容发现规则；
 - Project Skill Library 到不同 executor 的发现适配；
 - version range 的最终 grammar；
 - Lock 的 canonical TOML 结构；
@@ -81,6 +82,6 @@ v0 不提前引入：
 2. GitHub Release/Git source resolver；
 3. Artifact verification + immutable Store；
 4. hierarchical Project Skill Library activation；
-5. common dependency probes + `DEPENDENCIES.md` status；
+5. common dependency probes + `.akm/dependencies.lock`；
 6. executor adapters；
 7. CLI/MCP surface。

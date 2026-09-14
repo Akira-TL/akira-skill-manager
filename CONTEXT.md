@@ -30,7 +30,11 @@ Package Root 中的 `akm-package.toml`。它声明局部 Package name、version�
 
 ## Dependency Check File
 
-Package Root 中的 `DEPENDENCIES.md`。它是给 Agent 阅读的软件/环境依赖检查说明，包含 Package author 的特殊依赖要求以及项目侧当前检查状态；它不是可执行安装脚本。
+Package Root 中的不可变 `DEPENDENCIES.md`。它是 Package author 提供给 Agent 的软件/环境依赖检查说明，只描述特殊依赖、检查方法与处理边界；它不是可执行安装脚本，也不保存当前宿主状态。
+
+## Dependency State Lock
+
+项目本地 `.akm/dependencies.lock`。它保存 common software probe 与 Agent 对特殊依赖的当前观察结果，并关联 Package content/`DEPENDENCIES.md` digest；属于可重建的本机状态，默认不提交版本控制。
 
 ## Skill Dependency
 

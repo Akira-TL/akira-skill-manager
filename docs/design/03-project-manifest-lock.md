@@ -167,35 +167,31 @@ Project Lock 的 Package 不扁平激活。
 ├── akm.toml
 ├── akm.lock
 └── .akm/
+    ├── dependencies.lock
     └── skills/
         ├── Akira-TL/
         │   └── matt-skills/
-        │       ├── ask-matt/
-        │       ├── implement/
-        │       └── tdd/
+        │       ├── ask-matt -> <machine-store>/<exact-package-root>
+        │       ├── implement -> <machine-store>/<exact-package-root>
+        │       └── tdd -> <machine-store>/<exact-package-root>
         └── someone/
             └── other-repo/
-                └── ask-matt/
+                └── ask-matt -> <machine-store>/<exact-package-root>
 ```
 
 因此同名 Skill 不在 AKM library 层冲突。
 
 `Project Skill Library` 保存来源层级；某个执行器如何发现这些 leaf Skill Roots，由 executor adapter/执行器自身完成。AKM 核心不维护一个全局扁平 `<skill-name> -> package` 名称表。
 
-每个 Package leaf 可以是项目侧 activation overlay：
+Package leaf 直接链接完整不可变 Package Root。AKM 和 Agent 都不修改 Store 中的 `DEPENDENCIES.md` 或其他 Package 文件。
 
-```text
-ask-matt/
-├── SKILL.md            -> machine store
-├── akm-package.toml    -> machine store
-├── references          -> machine store
-├── scripts             -> machine store
-└── DEPENDENCIES.md     # project-local writable dependency status
-```
+## 8. 两类 Lock 必须分开
 
-## 8. Lock 中的软件依赖
+### `akm.lock`
 
-Lock 可以保存 Package 的结构化 `[software]` requirement，方便知道某个 Package 声明了什么：
+`akm.lock` 保存可移植的 Package graph/source 信息，可以提交版本控制。
+
+它可以保存 Package 声明的结构化 `[software]` requirement：
 
 ```toml
 [[software]]
@@ -204,21 +200,33 @@ name = "git"
 requirement = ">=2.40"
 ```
 
-但 Lock 不保存这台机器当前是否安装、路径在哪里或特殊依赖是否满足。
+但不保存这台机器探测到的软件路径、版本或特殊依赖当前状态。
 
-实际状态写入项目侧 Package leaf 的 `DEPENDENCIES.md`，并允许重新检查。
+### `.akm/dependencies.lock`
+
+`.akm/dependencies.lock` 保存当前项目在当前宿主环境上的依赖检查结果。它是本地可重建状态，默认不提交版本控制。
+
+它至少关联：
+
+- Package coordinate/version/content digest；
+- `DEPENDENCIES.md` digest；
+- common software probe observation；
+- Agent 对 Special dependency 的检查结果与说明。
+
+这样 Package payload 始终不可变；环境状态也不会污染跨机器可复现的 `akm.lock`。
 
 ## 9. `sync`
 
 `sync`：
 
 1. 读取 `akm.toml`；
-2. 根据已有 Lock 尽量保留仍合法的 GitHub Release/Git commit；
+2. 根据已有 `akm.lock` 尽量保留仍合法的 GitHub Release/Git commit；
 3. 解析 dependency closure；
 4. 下载缺失 Package Artifact 或显式 Git source；
 5. 校验并写入机器 Store；
-6. 重建 `.akm/skills/<owner>/<repo>/<package>/`；
-7. 对 `[software]` 做基础探测并更新每个 Package 的 `DEPENDENCIES.md` 状态区。
+6. 重建 `.akm/skills/<owner>/<repo>/<package>` 只读链接；
+7. 对 `[software]` 做基础探测并更新 `.akm/dependencies.lock`；
+8. 若 Package/`DEPENDENCIES.md` digest 变化，使对应特殊依赖检查状态失效，等待 Agent 重新检查。
 
 ## 10. remove 与 orphan
 
