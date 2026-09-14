@@ -31,12 +31,12 @@ AKM 项目侧有四个职责分离的状态文件，其中 `akm.lock` 内部仍�
 schema = 1
 
 [skills]
-"Akira-TL/matt-skills/ask-matt" = "^1.4"
-"Akira-TL/skills/browser-access" = "^2.0"
+"akira-tl/matt-skills/ask-matt" = "^1.4"
+"akira-tl/skills/browser-access" = "^2.0"
 "example/special-skills/special-skill" = { git = "main" }
 ```
 
-字符串值表示 GitHub Release version requirement。coordinate 可以是 `owner/repo/package` 或 `owner/repo`；前者选择一个 Skill Package，后者表示 repository-wide top-level requirement。
+字符串值表示 GitHub Release version requirement。coordinate 可以是 `owner/repo/package` 或 `owner/repo`；前者选择一个 Skill Package，后者表示 repository-wide top-level requirement。输入允许 GitHub display casing，但解析后的语义 coordinate 必须按 [`source-trust-conformance.md`](source-trust-conformance.md) 把 owner/repo ASCII lowercase；Requirement Set comparison、repository grouping 与 canonical Lock 都使用该 canonical coordinate。
 
 Git source 使用 inline table，必须显式：
 
@@ -111,7 +111,7 @@ Release：
 
 ```toml
 [[requirement]]
-coordinate = "Akira-TL/matt-skills/ask-matt"
+coordinate = "akira-tl/matt-skills/ask-matt"
 source-kind = "github-release"
 version = "^1.4"
 ```
@@ -133,7 +133,7 @@ Release：
 
 ```toml
 [[repository]]
-coordinate = "Akira-TL/matt-skills"
+coordinate = "akira-tl/matt-skills"
 source-kind = "github-release"
 version = "1.4.3"
 tag = "v1.4.3"
@@ -156,12 +156,12 @@ Repository Record 是 source provenance 的唯一位置。Package Record 不重�
 
 ```toml
 [[package]]
-coordinate = "Akira-TL/matt-skills/ask-matt"
+coordinate = "akira-tl/matt-skills/ask-matt"
 package-root = "skills/engineering/ask-matt"
 content-digest = "sha256:3333333333333333333333333333333333333333333333333333333333333333"
 dependencies = [
-  "Akira-TL/matt-skills/implement",
-  "Akira-TL/matt-skills/wayfinder",
+  "akira-tl/matt-skills/implement",
+  "akira-tl/matt-skills/wayfinder",
 ]
 ```
 
@@ -227,7 +227,7 @@ package:
   dependencies
 ```
 
-Canonical ordering 用于稳定 Git diff 和 deterministic generation；Lock 语义仍由解析后的 TOML 数据决定。
+Canonical ordering 用于稳定 Git diff 和 deterministic generation；所有 coordinate 在排序与输出前都已经完成 owner/repo lowercase canonicalization。Lock 语义仍由解析后的 TOML 数据决定。
 
 ## 7. Project Intent 与 Confirmed Resolution
 

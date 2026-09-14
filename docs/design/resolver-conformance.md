@@ -209,8 +209,8 @@ origin 用于 deterministic conflict facts，不进入 Package identity。
 
 对于某个 unresolved Release-bound repository：
 
-1. source profile 提供当前 operation 可见的 eligible GitHub Release records；
-2. 只保留可规范化为 SemVer 的 Release；
+1. [`source-trust-conformance.md`](source-trust-conformance.md) 提供 canonical repository identity 与 published (`draft=false`) GitHub Release records；
+2. GitHub `prerelease` / latest / timestamp / API order 不参与 eligibility；只保留 actual tag 可规范化为 SemVer 的 Release；
 3. 可选前导 `v` 从 version normalization 中移除，但 actual tag 保留为 provenance；
 4. 只保留同时满足当前全部 repository constraints 的 version；
 5. 按 SemVer **precedence** 从高到低形成 candidate groups。

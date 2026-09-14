@@ -10,7 +10,7 @@ GitHub repository 内的局部 Package 名称，例如 `ask-matt`。它以 `SKIL
 
 ## GitHub Package Coordinate
 
-AKM v0 的 GitHub 分发坐标，形式为 `<owner>/<repo>/<package>@<version-or-ref>`。`package` 可在用户顶层安装目标中省略以表示安装该 source snapshot 中全部发现的 Skill Package。
+Skiloom v0 的 GitHub Package Coordinate 是 `<owner>/<repo>/<package>`；用户顶层 target 可以省略 `package` 表示 repository-wide requirement，并另外附加 Release requirement 或 explicit Git ref。GitHub `owner/repo` 在 Core semantic comparison、resolver grouping、dependency edge 与 canonical Lock 中统一使用 ASCII lowercase；case-only 差异不产生新 source identity。
 
 ## GitHub Release Version
 
@@ -68,6 +68,14 @@ Package Root 中可选、不可变的 `DEPENDENCIES.md`。它是 Package author 
 
 项目已经明确接受并写入 `.agents/.akm/akm.lock` 的 exact repository snapshots、Package identities 与 dependency graph。普通 `sync` 只恢复已有 Confirmed Resolution；只有 initial resolution 或显式 update 在接受后才能替换它。
 
+## Candidate Repository Set
+
+一次 initial resolution 或显式 re-resolution 产生的完整 repository source binding 集合。Transitive dependency 可以把新的 GitHub repository 提名进 candidate graph，但只有完整 Candidate Repository Set 被 acceptance decision 覆盖后，它才可以进入 Confirmed Resolution；普通 replay 不扩张该集合。
+
+## Source Authorization Delta
+
+Candidate Repository Set 相对当前 Confirmed Resolution 的 repository/source 变化事实，包括 repository 新增/移除、source-kind 变化与 exact Release/Git binding 变化。Non-interactive acceptance policy 必须基于完整 previous/candidate sets 与该 delta 做整份 candidate 的 accept/reject，而不是把 resolver 成功本身当授权。
+
 ## Resolved Graph
 
 AKM 根据 Project Requirement、exact repository source snapshots、`SKILL.md` discovery 与可选 Manifest 求出的完整已知 dependency graph。没有 Manifest 的 Skill 是合法 leaf node；Skill dependency cycle 本身合法，只要 repository source/version constraints 可以形成完整 deterministic resolution。
@@ -86,7 +94,7 @@ Package Snapshot 的 canonical 内容身份。v0 使用 `AKM-PACKAGE-V1`：只�
 
 ## Repository Lock Record
 
-`.agents/.akm/akm.lock` 中 source provenance 的唯一记录。Release source 保存 repository coordinate、规范化 SemVer、actual tag、exact commit 与 immutable signal；Git source 保存 repository coordinate 与 exact commit。Package Record 不重复这些字段。
+`.agents/.akm/akm.lock` 中 source provenance 的唯一记录。Repository coordinate 使用 canonical lowercase owner/repo；Release source 保存规范化 SemVer、actual tag、exact commit 与 immutable signal，Git source 保存 exact commit。Package Record 不重复这些字段。GitHub 后续 rename/transfer 不自动改写既有 Lock provenance。
 
 ## Package Lock Record
 

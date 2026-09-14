@@ -102,7 +102,7 @@ Skiloom Core v0 的 mandatory source profile 是 GitHub repository source profil
 - MUST 在 exact repository snapshot 之后让 Release/Git 共用同一 discovery、snapshot 与 content identity 语义；
 - MUST 把 source provenance 与 Package Content Identity 保持为不同协议事实。
 
-未来 Registry、archive mirror 或其他 source model 可以成为新 source profile，但 MUST NOT 改写既有 GitHub Core profile 的含义。
+未来 Registry、archive mirror 或其他 source model 可以成为新 source profile，但 MUST NOT 改写既有 GitHub Core profile 的含义。GitHub coordinate canonicalization、published Release candidate boundary、repository redirect/rename handling、candidate source-set authorization 与 access-error semantics 已由 [`source-trust-conformance.md`](source-trust-conformance.md) / ADR 0015 固定。
 
 ### 3.6 Project Intent 与 Confirmed Resolution
 
@@ -311,7 +311,7 @@ Host Observation **不是 Full Core Manager conformance 的组成部分**。
 
 ### #9 Source / Trust
 
-#9 MUST 把 Core trust 收敛为 source authorization boundary、exact provenance、retarget detection 与 content integrity；不得把 registry reputation、publisher PKI、marketplace policy 或 arbitrary provider abstraction塞入 v0 Core。任何 transitive dependency MUST NOT 静默扩大 project 已允许的 source model。
+#9 已按 [`source-trust-conformance.md`](source-trust-conformance.md) / ADR 0015 收敛：Core trust 只拥有 GitHub coordinate/source authorization、exact provenance、retarget/content-integrity boundary；registry reputation、publisher trust体系、marketplace policy 与 arbitrary provider abstraction 保持在 v0 Core 之外。Transitive dependency 可以提名新 repository，但只有完整 accepted Candidate Repository Set 才能进入 Confirmed Resolution。
 
 ## 10. 一句话边界
 

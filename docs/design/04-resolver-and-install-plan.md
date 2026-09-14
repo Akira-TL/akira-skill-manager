@@ -2,7 +2,7 @@
 
 状态：Working Draft（reference manager orchestration）
 
-Class R 的 normative resolution contract 已固定在 [`resolver-conformance.md`](resolver-conformance.md) 与 [ADR 0014](../adr/0014-deterministic-release-resolver.md)。本文件继续描述 reference manager 如何把 Core resolution 与 source acquisition、Package snapshot、activation、Host Observation 串成 Install Plan；其中 cache/materialization/CLI 细节不构成 Class R conformance requirement。
+Class R 的 normative resolution contract 已固定在 [`resolver-conformance.md`](resolver-conformance.md)、[`source-trust-conformance.md`](source-trust-conformance.md)、[ADR 0014](../adr/0014-deterministic-release-resolver.md) 与 [ADR 0015](../adr/0015-github-source-trust-boundary.md)。本文件继续描述 reference manager 如何把 Core resolution 与 source acquisition、Package snapshot、activation、Host Observation 串成 Install Plan；其中 cache/materialization/CLI 细节不构成 Class R conformance requirement。
 
 ## 1. Resolver 的对象
 
@@ -40,9 +40,9 @@ owner/repo/bar@^1.4
 
 如果 `foo` 与 `bar` 来自同一个 repository，则约束共同作用于 repository Release version。
 
-Release resolver v0 只接受 SemVer GitHub Release，允许 tag 使用可选前导 `v`。例如 `1.4.0` 与 `v1.4.0` 都规范化为版本 `1.4.0`；如果两者同时存在则构成 `AmbiguousReleaseVersion`。
+Release resolver v0 只接受 published (`draft=false`) GitHub Release；actual tag 必须可按 SemVer 规范化，允许可选前导 `v`。例如 `1.4.0` 与 `v1.4.0` 都规范化为版本 `1.4.0`；如果两者同时存在则构成 `AmbiguousReleaseVersion`。GitHub `prerelease` / latest / timestamp / API 返回顺序不参与 Class R candidate eligibility 或 ordering。
 
-选定 Release 后，AKM 记录实际 tag，并把 tag 解析为 exact commit；随后只从该 repository source snapshot 按 `SKILL.md` discovery 找到 Package Root。v0 不使用 package-specific AKM Release Asset。
+选定 Release 后，AKM 记录 actual tag，并把 tag 最终 peel 到 exact commit；`target_commitish` 不作为 exact source identity。随后只从该 repository source snapshot 按 `SKILL.md` discovery 找到 Package Root。v0 不使用 package-specific AKM Release Asset。
 
 Package 没有 Manifest 时仍是合法 leaf Package，只是没有 AKM 可见的结构化 transitive dependency。
 
@@ -390,6 +390,10 @@ parse Project Intent
 - `AmbiguousPackageDiscovery`；
 - `InvalidSkillMetadata`；
 - `InvalidOptionalManifest`；
+- `InvalidGitHubCoordinate`；
+- `RepositoryCoordinateChanged`；
+- `SourceAccessUnavailable`；
+- `ReleaseTagNotCommit`；
 - `RepositorySourceConflict`；
 - `ProjectIntentLockMismatch`；
 - `FrozenRequirementMismatch`；

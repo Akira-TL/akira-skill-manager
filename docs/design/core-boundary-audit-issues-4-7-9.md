@@ -1,8 +1,8 @@
 # Skiloom Core 边界审查：Package Manifest、Resolver、Source / Trust
 
-状态：Review
+状态：Review Complete
 
-前提：[`skiloom-core-conformance.md`](skiloom-core-conformance.md) 与 [ADR 0012](../adr/0012-skiloom-core-conformance-boundary.md) 已接受。本文件不重新打开此前 Accepted 决定，只判断 #4、#7、#9 的剩余设计分别属于 Core、Extension、reference implementation 还是仍待决。
+前提：[`skiloom-core-conformance.md`](skiloom-core-conformance.md) 与 [ADR 0012](../adr/0012-skiloom-core-conformance-boundary.md) 已接受。本文件记录 #4、#7、#9 在 Core boundary 下的审查过程；后续 normative 结论已分别落到 `package-manifest-schema.md`、`resolver-conformance.md`、`source-trust-conformance.md` 及 ADR 0013–0015。
 
 ## 1. 审查规则
 
@@ -196,16 +196,9 @@ explicit acceptance decision that creates/replaces the Confirmed Resolution.
 
 这些未来都可以叠加在 Core exact provenance 之上，但不能改变相同 Core inputs 的 Package identity、digest 或 Confirmed Resolution 语义。
 
-### 4.4 #9 仍待决
+### 4.4 #9 最终结论
 
-在关闭 #9 前还需精确定义：
-
-1. GitHub `owner/repo` coordinate 的 lexical grammar、大小写比较与 canonical representation；
-2. repository rename / transfer 后，旧 coordinate 与新 canonical repository identity 如何处理；
-3. GitHub Release metadata 中哪些字段属于 candidate/Lock provenance，哪些只是 advisory trust signal；
-4. non-interactive source authorization policy 的最小 machine-readable contract；
-5. private repository / authentication failure 是 source unavailable、authorization blocked 还是独立错误类别；
-6. future index/registry 若出现，必须作为新 source profile 还是仅做 discovery hint；v0 建议明确为“没有强制 index”。
+上述 open items 已由 [`source-trust-conformance.md`](source-trust-conformance.md) / ADR 0015 收敛：owner/repo lowercase canonicalization；rename/transfer fail-closed explicit transition；published Release + actual tag/exact commit authority；complete Candidate Repository Set acceptance；ambiguous access failure使用 non-disclosing source error；v0 无 mandatory index，content-serving Registry 必须是 future source profile。
 
 ---
 

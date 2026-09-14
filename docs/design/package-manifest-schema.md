@@ -30,8 +30,8 @@ Schema 1 只登记三个顶层成员：
 schema = 1
 
 [dependencies]
-"Akira-TL/matt-skills/implement" = "^1.4"
-"Akira-TL/matt-skills/wayfinder" = "^1.4"
+"akira-tl/matt-skills/implement" = "^1.4"
+"akira-tl/matt-skills/wayfinder" = "^1.4"
 
 [software]
 git = ">=2.40"
@@ -160,7 +160,7 @@ Core 结构规则：
 - 如果 Project Intent 已把同 repository 显式绑定到 Git source，则 Resolver 按 repository-scoped binding 的既有规则处理；
 - Schema 1 的全部 dependency edge 都是 required edge。
 
-GitHub `owner/repo` canonicalization、大小写与 source authorization/trust 规则属于 #9；#4 只定义 dependency coordinate 的结构位置与 required-edge 语义。
+GitHub `owner/repo` 的 source semantics 由 [`source-trust-conformance.md`](source-trust-conformance.md) 定义：owner/repo 做 ASCII lowercase canonicalization，dependency graph、repository grouping 与 Lock 都使用 canonical coordinate；真正的 repository rename/transfer 不靠 redirect 静默迁移。#4 只定义 dependency coordinate 的结构位置与 required-edge 语义。
 
 ## 7. Registered `[software]` attachment
 
