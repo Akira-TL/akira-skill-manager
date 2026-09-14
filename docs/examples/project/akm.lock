@@ -1,86 +1,51 @@
 lock-version = 1
 manifest-digest = "sha256:1111111111111111111111111111111111111111111111111111111111111111"
 
-[[github-release]]
-repository = "Akira-TL/matt-skills"
-version = "1.4.3"
-release-url = "https://github.com/Akira-TL/matt-skills/releases/tag/1.4.3"
-
-[[github-release]]
-repository = "Akira-TL/skills"
-version = "2.1.0"
-release-url = "https://github.com/Akira-TL/skills/releases/tag/2.1.0"
+[[repository]]
+coordinate = "Akira-TL/matt-skills"
+source-kind = "github-release"
+release = "1.4.3"
+commit = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+source-digest = "sha256:2222222222222222222222222222222222222222222222222222222222222222"
 
 [[package]]
 coordinate = "Akira-TL/matt-skills/ask-matt"
 name = "ask-matt"
-version = "1.4.3"
 source-kind = "github-release"
-artifact = "ask-matt.akm.tar.gz"
-integrity = "sha256:2222222222222222222222222222222222222222222222222222222222222222"
+release = "1.4.3"
+commit = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+package-root = "skills/engineering/ask-matt"
+content-digest = "sha256:3333333333333333333333333333333333333333333333333333333333333333"
+manifest-digest = "sha256:4444444444444444444444444444444444444444444444444444444444444444"
+dependencies-doc-digest = "sha256:5555555555555555555555555555555555555555555555555555555555555555"
 dependencies = [
   "Akira-TL/matt-skills/implement@1.4.3",
-  "Akira-TL/matt-skills/triage@1.4.3",
   "Akira-TL/matt-skills/wayfinder@1.4.3",
 ]
 
 [[package]]
 coordinate = "Akira-TL/matt-skills/implement"
 name = "implement"
-version = "1.4.3"
 source-kind = "github-release"
-artifact = "implement.akm.tar.gz"
-integrity = "sha256:3333333333333333333333333333333333333333333333333333333333333333"
-dependencies = [
-  "Akira-TL/matt-skills/tdd@1.4.3",
-]
-
-[[package]]
-coordinate = "Akira-TL/matt-skills/tdd"
-name = "tdd"
-version = "1.4.3"
-source-kind = "github-release"
-artifact = "tdd.akm.tar.gz"
-integrity = "sha256:4444444444444444444444444444444444444444444444444444444444444444"
+release = "1.4.3"
+commit = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+package-root = "skills/engineering/implement"
+content-digest = "sha256:6666666666666666666666666666666666666666666666666666666666666666"
 dependencies = []
 
-[[package]]
-coordinate = "Akira-TL/matt-skills/triage"
-name = "triage"
-version = "1.4.3"
-source-kind = "github-release"
-artifact = "triage.akm.tar.gz"
-integrity = "sha256:5555555555555555555555555555555555555555555555555555555555555555"
-dependencies = []
-
-[[package]]
-coordinate = "Akira-TL/matt-skills/wayfinder"
-name = "wayfinder"
-version = "1.4.3"
-source-kind = "github-release"
-artifact = "wayfinder.akm.tar.gz"
-integrity = "sha256:6666666666666666666666666666666666666666666666666666666666666666"
-dependencies = []
-
-[[package]]
-coordinate = "Akira-TL/skills/browser-access"
-name = "browser-access"
-version = "2.1.0"
-source-kind = "github-release"
-artifact = "browser-access.akm.tar.gz"
-integrity = "sha256:7777777777777777777777777777777777777777777777777777777777777777"
-dependencies = []
+[[repository]]
+coordinate = "example/special-skills"
+source-kind = "git"
+requested-ref = "main"
+commit = "0123456789abcdef0123456789abcdef01234567"
 
 [[package]]
 coordinate = "example/special-skills/special-skill"
 name = "special-skill"
-version = "0.3.1"
 source-kind = "git"
-repository = "https://github.com/example/special-skills.git"
-requested-ref = "main"
 commit = "0123456789abcdef0123456789abcdef01234567"
-package-root = "skills/special-skill"
-content-digest = "sha256:8888888888888888888888888888888888888888888888888888888888888888"
+package-root = "unusual/path/special-skill"
+content-digest = "sha256:7777777777777777777777777777777777777777777777777777777777777777"
 dependencies = []
 
 [[software]]

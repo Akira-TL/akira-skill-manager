@@ -2,9 +2,8 @@ lock-version = 1
 
 [[package]]
 coordinate = "Akira-TL/matt-skills/ask-matt"
-version = "1.4.3"
-content-digest = "sha256:2222222222222222222222222222222222222222222222222222222222222222"
-dependencies-doc-digest = "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+content-digest = "sha256:3333333333333333333333333333333333333333333333333333333333333333"
+dependencies-doc-digest = "sha256:5555555555555555555555555555555555555555555555555555555555555555"
 
 [[package.software]]
 name = "git"
@@ -25,10 +24,3 @@ name = "GitHub authentication"
 status = "unknown"
 checked-by = "agent"
 note = "Private repository access has not been checked yet."
-
-[[package.special]]
-name = "Executor discovery"
-status = "satisfied"
-checked-by = "agent"
-note = "The current executor discovered the project-level ask-matt Skill."
-checked-at = "2026-09-14T17:20:00+08:00"

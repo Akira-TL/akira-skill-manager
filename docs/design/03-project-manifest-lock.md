@@ -1,23 +1,26 @@
 # Project Manifest 与 Lock v0 工作草案
 
-## 1. 目标
+## 1. 两个文件、两个职责
 
-Project Manifest 记录项目主动安装的 GitHub Skill targets；Project Lock 记录解析后的精确 GitHub Release/Git commit、Package 集合与依赖图。
-
-当前 v0 不依赖独立 Package Registry。
-
-## 2. 文件名
+项目协议文件：
 
 ```text
 akm.toml
 akm.lock
 ```
 
-`akm.toml` 由用户/Agent 编辑；`akm.lock` 由 AKM 生成。
+- `akm.toml`：用户/Agent 声明顶层安装目标；
+- `akm.lock`：AKM 生成，锁定 exact source snapshot、实际发现的 Package Root、content digest 与结构化 dependency graph。
 
-## 3. Project Manifest
+本机依赖检查状态另放：
 
-指定单个 Package：
+```text
+.akm/dependencies.lock
+```
+
+## 2. Project Manifest
+
+Release source 示例：
 
 ```toml
 schema = 1
@@ -27,140 +30,108 @@ schema = 1
 "Akira-TL/skills/browser-access" = "^2.0"
 ```
 
-允许显式安装某个 repository 的全部 Package：
+Repository-wide：
 
 ```toml
 [skills]
 "Akira-TL/matt-skills" = "1.4.0"
 ```
 
-两种 key 与 CLI 安装目标一致：
-
-```text
-owner/repo/package@version
-owner/repo@version
-```
-
-区别：
-
-- `owner/repo/package`：顶层 requirement 是一个 Package；
-- `owner/repo`：顶层 requirement 是该 Release 中发现的全部 Package；
-- transitive `[dependencies]` 必须始终精确到 `owner/repo/package`，不能依赖整个 repository。
-
-## 4. Git 模式必须显式记录
-
-默认 requirement 解析 GitHub Release。
-
-开发或没有 Release 时，项目可以显式允许 Git source：
+Git source 必须显式：
 
 ```toml
-[sources."Akira-TL/matt-skills/ask-matt"]
+[skills]
+"example/special-skills/special-skill" = "*"
+
+[sources."example/special-skills/special-skill"]
 kind = "git"
 ref = "main"
 ```
 
-或对 repository-wide target：
+Git 模式下 `ref` 决定 source；`[skills]` 中的 version range 不参与 Git commit 选择。实现时可以进一步收敛 Git target 的 manifest 语法，避免 `"*"` 这种占位表达。
 
-```toml
-[sources."Akira-TL/matt-skills"]
-kind = "git"
-ref = "9b2c7f..."
-```
+## 3. Package 不要求 Manifest
 
-Git source 规则：
+Lock 中每个 Package 都至少来自一个合法 `SKILL.md`。
 
-- 必须是显式配置/显式 CLI 参数；
-- 不因 Release 不存在自动 fallback；
-- Lock 必须固定 exact commit；
-- clone 后机械扫描 `SKILL.md + akm-package.toml` Package Roots；
-- package selector 存在时只选择对应 Package；
-- selector 省略时选择全部发现的 Package。
+如果 Package 没有 `akm-package.toml`：
 
-## 5. GitHub Release version 的作用域
+- 仍可安装；
+- `dependencies = []`；
+- 没有结构化 `[software]` requirements；
+- 如果有 `DEPENDENCIES.md`，仍记录其 digest 供 Agent dependency checking 使用。
 
-当前 GitHub 模式中，`@version` 指 repository 的 GitHub Release version。
+如果 Manifest 存在，则 Lock 固化解析出的 dependency edges 与 software requirements。
 
-例如：
-
-```text
-Akira-TL/matt-skills/ask-matt@1.4.0
-```
-
-含义是：
-
-1. 选择 `Akira-TL/matt-skills` Release `1.4.0`；
-2. 在该 Release 中选择 `ask-matt` Package Artifact；
-3. 校验其中 `package.name = "ask-matt"`；
-4. 校验 `package.version = "1.4.0"`。
-
-因此同一个 repository Release 中的原生 AKM Package 使用同一 Release version。
-
-如果多个 dependency 都来自同一 repository：
-
-```text
-Akira-TL/matt-skills/implement ^1.4
-Akira-TL/matt-skills/tdd       >=1.4 <2
-```
-
-resolver 实际选择一个满足这些约束的 `matt-skills` Release version，再从该 Release 取所需 Package Artifacts。
-
-未来 Registry 模式可以有独立 package version；那是另一种 source model，不改变 GitHub v0 的简单规则。
-
-## 6. Lock Record
+## 4. Release Lock Record
 
 示意：
 
 ```toml
 lock-version = 1
+manifest-digest = "sha256:..."
 
-[[github-release]]
-repository = "Akira-TL/matt-skills"
-version = "1.4.3"
-release-url = "https://github.com/Akira-TL/matt-skills/releases/tag/1.4.3"
+[[repository]]
+coordinate = "Akira-TL/matt-skills"
+source-kind = "github-release"
+release = "1.4.3"
+commit = "abcdef0123456789..."
+source-digest = "sha256:..."
 
 [[package]]
 coordinate = "Akira-TL/matt-skills/ask-matt"
 name = "ask-matt"
-version = "1.4.3"
 source-kind = "github-release"
-artifact = "ask-matt.akm.tar.gz"
-integrity = "sha256:..."
+release = "1.4.3"
+package-root = "skills/engineering/ask-matt"
+content-digest = "sha256:..."
+manifest-digest = "sha256:..."
+dependencies-doc-digest = "sha256:..."
 dependencies = [
   "Akira-TL/matt-skills/implement@1.4.3",
   "Akira-TL/matt-skills/wayfinder@1.4.3",
 ]
-
-[[package]]
-coordinate = "Akira-TL/matt-skills/implement"
-name = "implement"
-version = "1.4.3"
-source-kind = "github-release"
-artifact = "implement.akm.tar.gz"
-integrity = "sha256:..."
-dependencies = [
-  "Akira-TL/matt-skills/tdd@1.4.3",
-]
 ```
 
-Git source：
+没有可选文件时对应 digest 字段省略。
+
+## 5. Git Lock Record
 
 ```toml
-[[package]]
-coordinate = "example/tools/foo"
-name = "foo"
-version = "0.4.0"
+[[repository]]
+coordinate = "example/special-skills"
 source-kind = "git"
-repository = "https://github.com/example/tools.git"
-commit = "0123456789abcdef..."
-package-root = "skills/foo"
+requested-ref = "main"
+commit = "0123456789abcdef0123456789abcdef01234567"
+
+[[package]]
+coordinate = "example/special-skills/special-skill"
+name = "special-skill"
+source-kind = "git"
+commit = "0123456789abcdef0123456789abcdef01234567"
+package-root = "weird/path/special-skill"
 content-digest = "sha256:..."
+dependencies = []
 ```
 
-## 7. 项目 Skill Library
+Lock **不保存机器 Git cache 的绝对路径**。Cache 是 disposable 本机实现细节；真正可重建的是 repository + exact commit + package-root + content digest。
 
-Project Lock 的 Package 不扁平激活。
+## 6. Repository snapshot 级一致性
 
-逻辑布局：
+同一个 project resolution 内：
+
+```text
+owner/repo
+```
+
+只能绑定一个 exact source snapshot：
+
+- 一个 GitHub Release 对应的 exact commit；或
+- 一个 Git exact commit。
+
+来自同一 repository 的多个 Package Lock Record 必须引用同一个 repository snapshot。
+
+## 7. Project Skill Library
 
 ```text
 <project>/
@@ -171,67 +142,57 @@ Project Lock 的 Package 不扁平激活。
     └── skills/
         ├── Akira-TL/
         │   └── matt-skills/
-        │       ├── ask-matt -> <machine-store>/<exact-package-root>
-        │       ├── implement -> <machine-store>/<exact-package-root>
-        │       └── tdd -> <machine-store>/<exact-package-root>
-        └── someone/
-            └── other-repo/
-                └── ask-matt -> <machine-store>/<exact-package-root>
+        │       ├── ask-matt -> <machine-store>/<digest>
+        │       └── tdd      -> <machine-store>/<digest>
+        └── other/
+            └── repo/
+                └── ask-matt -> <machine-store>/<digest>
 ```
 
-因此同名 Skill 不在 AKM library 层冲突。
+Package leaf 直接链接完整 immutable Skill Root。AKM 不修改 Package 文件。
 
-`Project Skill Library` 保存来源层级；某个执行器如何发现这些 leaf Skill Roots，由 executor adapter/执行器自身完成。AKM 核心不维护一个全局扁平 `<skill-name> -> package` 名称表。
-
-Package leaf 直接链接完整不可变 Package Root。AKM 和 Agent 都不修改 Store 中的 `DEPENDENCIES.md` 或其他 Package 文件。
-
-## 8. 两类 Lock 必须分开
+## 8. `akm.lock` 与 `.akm/dependencies.lock`
 
 ### `akm.lock`
 
-`akm.lock` 保存可移植的 Package graph/source 信息，可以提交版本控制。
+可提交、可移植，保存：
 
-它可以保存 Package 声明的结构化 `[software]` requirement：
-
-```toml
-[[software]]
-package = "Akira-TL/matt-skills/ask-matt"
-name = "git"
-requirement = ">=2.40"
-```
-
-但不保存这台机器探测到的软件路径、版本或特殊依赖当前状态。
+- exact repository source snapshot；
+- actual package-root；
+- `SKILL.md.name`；
+- content digest；
+- optional Manifest/Dependency Check File digest；
+- exact manifest-declared Skill dependency edges；
+- optional structured common software requirements。
 
 ### `.akm/dependencies.lock`
 
-`.akm/dependencies.lock` 保存当前项目在当前宿主环境上的依赖检查结果。它是本地可重建状态，默认不提交版本控制。
+默认不提交，保存当前机器检查状态：
 
-它至少关联：
-
-- Package coordinate/version/content digest；
-- `DEPENDENCIES.md` digest；
-- common software probe observation；
-- Agent 对 Special dependency 的检查结果与说明。
-
-这样 Package payload 始终不可变；环境状态也不会污染跨机器可复现的 `akm.lock`。
+- common software probe observations；
+- Agent 对 `DEPENDENCIES.md` 中特殊条件的检查结果；
+- 对应 Package/content/dependency-doc digest，用于失效判断。
 
 ## 9. `sync`
 
-`sync`：
+```text
+read akm.toml + previous lock
+  -> keep still-valid exact repository snapshots when possible
+  -> resolve/fetch release source or explicit Git source cache
+  -> discover SKILL.md Package Roots
+  -> read optional manifests
+  -> resolve dependency closure
+  -> snapshot missing Package Roots into Store
+  -> rebuild Project Skill Library
+  -> refresh common dependency observations
+  -> invalidate stale special-dependency observations
+  -> write locks atomically
+```
 
-1. 读取 `akm.toml`；
-2. 根据已有 `akm.lock` 尽量保留仍合法的 GitHub Release/Git commit；
-3. 解析 dependency closure；
-4. 下载缺失 Package Artifact 或显式 Git source；
-5. 校验并写入机器 Store；
-6. 重建 `.akm/skills/<owner>/<repo>/<package>` 只读链接；
-7. 对 `[software]` 做基础探测并更新 `.akm/dependencies.lock`；
-8. 若 Package/`DEPENDENCIES.md` digest 变化，使对应特殊依赖检查状态失效，等待 Agent 重新检查。
+## 10. remove / orphan
 
-## 10. remove 与 orphan
+删除一个顶层 target 后重新计算当前可见的 manifest dependency closure。
 
-删除一个顶层 target 后重新计算 dependency closure。
+不再可达的 Package 从 Project Skill Library 移除；machine Store 内容由单独 GC 策略处理。Git source cache 也独立 GC，因为项目不直接引用 cache。
 
-不再可达的 transitive Package 从 Project Skill Library 中移除，但机器 Store 可继续缓存，交由单独 GC 策略处理。
-
-Reverse Dependency 直接由 Lock 中的 dependency edges 推导，不单独维护第二份状态。
+Reverse Dependency 直接由 `akm.lock` 中 dependency edges 推导。

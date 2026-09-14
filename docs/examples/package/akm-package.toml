@@ -1,9 +1,5 @@
 schema = 1
 
-[package]
-name = "ask-matt"
-version = "1.4.0"
-
 [dependencies]
 "Akira-TL/matt-skills/implement" = "^1.4"
 "Akira-TL/matt-skills/wayfinder" = "^1.4"

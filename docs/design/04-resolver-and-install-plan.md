@@ -1,202 +1,117 @@
 # Dependency Resolver 与 Install Plan v0 工作草案
 
-## 1. Resolver 要解决什么
+## 1. Resolver 的对象
 
-AKM v0 不是对一个抽象 Registry Package 世界求解，而是对 GitHub repositories 的 Release versions 与其中的 Package selectors 求解。
-
-顶层输入例如：
+AKM v0 直接解析 GitHub source：
 
 ```text
-Akira-TL/matt-skills/ask-matt ^1.4
-Akira-TL/skills/browser-access ^2.0
+owner/repo[/package]@version-or-ref
 ```
 
-Package Manifest 再引入：
+它不要求 Skill 作者先注册到独立 Registry，也不要求存在 `akm-package.toml`。
 
-```toml
-[dependencies]
-"Akira-TL/matt-skills/implement" = "^1.4"
-"Akira-TL/matt-skills/wayfinder" = "^1.4"
-```
-
-Resolver 最终确定：
-
-- 每个 GitHub repository 使用哪个精确 Release version；
-- 每个 Release 中真正需要哪些 Package Artifact；
-- 完整 transitive dependency graph；
-- 哪些 source 显式使用 Git 模式。
-
-## 2. GitHub 模式的版本求解单位
-
-GitHub v0 中 version 属于 repository Release。
-
-例如同一 dependency graph 出现：
+每个被选择的 Skill Package 至少由以下信息确定：
 
 ```text
-Akira-TL/matt-skills/ask-matt    ^1.4
-Akira-TL/matt-skills/implement   >=1.4 <2
-Akira-TL/matt-skills/tdd         ^1.5
-```
-
-这些不是三个彼此独立的 Package version choice，而是共同约束：
-
-```text
-repository = Akira-TL/matt-skills
-release version must satisfy all relevant ranges
-```
-
-一旦选中 Release `1.6.2`，需要的 Package 分别取：
-
-```text
-ask-matt.akm.tar.gz
-implement.akm.tar.gz
-tdd.akm.tar.gz
-```
-
-这保持 `owner/repo/package@version` 的语义简单。
-
-## 3. 同名 Skill 不属于 AKM resolver 冲突
-
-AKM Project Skill Library 是：
-
-```text
-skills/<owner>/<repo>/<package>/
-```
-
-所以：
-
-```text
-A/repo/foo
-B/repo/foo
-```
-
-可以同时存在。
-
-AKM core 不再定义 `SkillNameCollision`。
-
-如果某个执行器只能接受扁平 Skill namespace，冲突由 executor adapter 在生成该执行器视图时处理或报告；这不影响 Package graph 本身是否合法。
-
-## 4. Dependency cycle
-
-Skill dependency graph 仍不允许 cycle：
-
-```text
-A -> B -> C -> A
-```
-
-原因不是文件名冲突，而是安装/能力依赖关系无法形成清晰的 dependency closure。
-
-Resolver 必须报告完整 cycle path。
-
-## 5. Source 模式
-
-### GitHub Release
-
-默认模式。候选版本来自 repository 的 Releases。
-
-### Git
-
-只有顶层 CLI/Project Manifest 显式指定后才进入。
-
-Git 模式至少锁定：
-
-```text
-repository
-requested ref
-exact commit
-discovered Package Root(s)
+owner/repo
+source kind: release | git
+exact source snapshot: release+commit | exact commit
+repository-relative package-root
+SKILL.md.name
 content digest
 ```
 
-Release 不存在时不能静默自动改用 Git；用户必须显式选择 Git 模式。
+如果可选 `akm-package.toml` 存在，Resolver 再展开其结构化 Skill dependencies。
 
-一个 project resolution 中，同一个 `owner/repo` 只绑定一种 source：要么某个 GitHub Release，要么某个 exact Git commit。v0 不允许同一 repository 一部分 Package 来自 Release、另一部分来自 Git checkout。
+## 2. Release source
 
-当顶层目标 `owner/repo/package@ref --git` 绑定了 Git source 后，该 repository 内的 sibling Skill dependency 自动复用同一个 exact commit，不需要为每个 sibling 再次声明 Git source。例如 Git checkout 中 `ask-matt` 依赖同仓 `implement`，resolver 应直接在同一 checkout 的已发现 Package 中解析 `implement`。
+默认 source 是 GitHub Release。
 
-## 6. Resolver 输入
-
-概念接口：
+Release version 属于 repository。例如：
 
 ```text
-resolve(
-  project_requirements,
-  release_source,
-  explicit_git_sources,
-  previous_lock?,
-  mode,
-) -> Resolution | ResolutionError
+owner/repo/foo@1.4.0
+owner/repo/bar@^1.4
 ```
 
-`release_source` 对 GitHub 至少提供：
+如果 `foo` 与 `bar` 来自同一个 repository，则约束共同作用于 repository Release version。
+
+选定 Release 后，AKM 可以：
+
+1. 使用 package-specific AKM Asset（若存在）；或
+2. 下载该 Release/tag 对应 repository source archive；
+3. 从版本快照中按 `SKILL.md` discovery 找到 Package Root。
+
+Package 没有 Manifest 时仍是合法 leaf Package，只是没有 AKM 可见的结构化 transitive dependency。
+
+## 3. Git source
+
+没有 Release 或明确需要源码版本时，用户显式选择 Git source：
 
 ```text
-available_releases(owner, repo)
-package_manifest(owner, repo, release, package)
-package_asset(owner, repo, release, package)
+owner/repo/foo@main --git
 ```
 
-未来 Registry adapter 可以实现另一套 source interface，但不要求 GitHub dependency 先映射到 Registry ID。
+AKM：
 
-## 7. 版本选择
+1. 从机器级 Git Source Cache 取得/fetch repository；
+2. 把 requested ref 解析为 exact commit；
+3. 基于 exact commit 的 tracked tree 做 Skill discovery；
+4. snapshot 选中的 Skill Root 到 immutable Package Store；
+5. Lock exact commit、package-root 与 content digest。
 
-普通 `sync`：
+Git source 不直接把 mutable checkout 暴露给项目。
 
-1. previous lock 的 repository Release 仍满足当前全部 range 时优先保留；
-2. 需要更新时选择满足全部约束的候选 Release；
-3. 默认选择最高 compatible stable Release；
-4. prerelease 只有显式允许时参与；
-5. Package Artifact 在选中的 Release 中不存在时，该 Release 对相应 requirement 不可用。
+## 4. Git Source Cache
 
-冲突示例：
+逻辑布局：
 
 ```text
-A requires owner/repo/x <2
-B requires owner/repo/y >=3
+~/.cache/akm/git/github.com/<owner>/<repo>.git/
 ```
 
-因为 x/y 属于同一 repository Release version 空间，没有一个 Release 同时满足，必须报告版本冲突。
+它适合实现为 bare/mirror-style repository cache：
 
-## 8. Git checkout 后的 Package discovery
+- 同一 repository 只缓存一份 Git objects；
+- 不同项目、不同 branch/tag/commit 可以复用；
+- ref 更新只 fetch 增量 objects；
+- discovery 可以直接读 Git tree，真正需要 snapshot 时再临时 materialize；
+- cache 可以删除并重新获取，不是项目状态真相。
 
-Git 模式不能假设 Package 位于 `skills/<name>` 或 repository 根。`owner/repo/package` 只给出了局部 Package name，并没有给出源码路径，因此 clone 后必须先发现 Package Root。
+Source Cache 不进入 `akm.lock` 的本机绝对路径。Lock 只保存可重建 provenance：repository、requested ref、exact commit、package-root、content digest。
 
-原生 AKM repository 的 discovery anchor 是 `akm-package.toml`，不是目录命名猜测。
+## 5. Package discovery
+
+Git checkout/package path **不能由安装坐标提前推出**。
+
+统一 discovery anchor 是 `SKILL.md`。
 
 推荐算法：
 
-1. clone/fetch repository，并把 requested ref 解析成 exact commit；
-2. 基于该 commit 的 **tracked Git tree** 枚举所有名为 `akm-package.toml` 的文件，而不是扫描 `.git`、ignored build output 或用户本地未跟踪文件；
-3. 每个 `akm-package.toml` 的父目录成为 Package Root candidate；
-4. candidate 同目录必须存在 `SKILL.md`；
-5. 解析 `package.name` 与 `SKILL.md.name`；
-6. 校验：
+1. 取得 exact repository snapshot；
+2. 枚举版本化 tree 中所有 `SKILL.md`；
+3. 每个文件父目录成为 Package Root candidate；
+4. 解析 `SKILL.md` frontmatter `name`；
+5. 校验：
 
 ```text
-basename(package-root)
-== package.name
-== SKILL.md.name
+basename(package-root) == SKILL.md.name
 ```
 
-7. repository 内 `package.name` 必须唯一；同名多个 candidate 直接报告 `AmbiguousPackageDiscovery`，不靠“选第一个”解决；
-8. Package Root 不能互相嵌套，否则外层 Package payload 会隐式包含另一个 Package；发现嵌套 candidate 时 repository validation 失败；
-9. 如果用户指定 `owner/repo/package`，只选择 `package.name == selector` 的 candidate；
-10. 如果用户指定 `owner/repo`，选择全部合法 candidate；
-11. Lock 保存每个选中 Package 的相对 `package-root` 与 exact commit，因此之后不需要再次猜测路径。
+6. 如果同一个 `SKILL.md.name` 出现多个 candidate，报告 `AmbiguousPackageDiscovery`；
+7. Package Root 不允许互相嵌套；若出现嵌套 candidate，报告 repository layout error；
+8. 如果 `akm-package.toml` 存在，解析依赖增强信息；
+9. 如果 `DEPENDENCIES.md` 存在，记录其 digest；
+10. selector 存在时按 `SKILL.md.name` 匹配；
+11. selector 省略时选择全部合法 Package Roots；
+12. Lock 保存实际 repository-relative path。
 
-例如 repository：
+例如：
 
 ```text
 repo/
-├── agent-tools/
-│   └── routers/
-│       └── ask-matt/
-│           ├── SKILL.md
-│           └── akm-package.toml
-└── engineering/
-    └── tdd/
-        ├── SKILL.md
-        └── akm-package.toml
+├── agent-tools/routers/ask-matt/SKILL.md
+└── engineering/tdd/SKILL.md
 ```
 
 安装：
@@ -205,142 +120,228 @@ repo/
 owner/repo/ask-matt@main --git
 ```
 
-不需要用户知道 `agent-tools/routers/ask-matt`；AKM clone 后根据 manifest 发现它。
+不需要用户知道 `agent-tools/routers/ask-matt`。
 
-如果 exact commit 中一个原生 AKM Package 都发现不到，native discovery 失败。只含 `SKILL.md`、没有 `akm-package.toml` 的第三方 repository 属于 raw Skill compatibility 路径，单独设计，不在 native discovery 中靠目录猜测偷偷合成 Package。
+## 6. 同 repository source 一致性
 
-## 9. Repository-wide top-level install
+一个 project resolution 中，同一个 `owner/repo` 只绑定一个 source snapshot：
 
-用户可以显式安装：
+```text
+Release X (+ exact commit)
+或
+Git exact commit Y
+```
+
+不允许：
+
+```text
+foo <- Release 1.4.0
+bar <- Git main
+```
+
+来自同一个 repository 的 Package 必须来自同一 snapshot。
+
+Git source 下，如果一个有 Manifest 的 Skill 声明同 repository sibling dependency：
+
+```toml
+[dependencies]
+"owner/repo/helper" = "^1.4"
+```
+
+当前 explicit Git binding 优先：`helper` 从同一个 exact commit discovery/snapshot，不再切回 Release。该 dependency 的 Release range 在 Git override 下不作为版本选择条件；Lock 明确记录 source-kind=git，使这种开发态 override 可审计。
+
+跨 repository dependency 没有显式 Git override 时仍按 Release source 解析。
+
+## 7. Version resolution
+
+普通 Release `sync`：
+
+1. previous Lock 的 exact Release 仍满足全部 repository ranges 时优先保留；
+2. 否则枚举符合约束的 Release；
+3. 默认优先最高 compatible stable Release；
+4. prerelease 只有显式允许时参与；
+5. 选中的 Release snapshot 必须能 discovery 到所需 `SKILL.md.name`。
+
+如果 Package 没有 Manifest，不产生新的 transitive version constraints。
+
+## 8. Dependency graph
+
+Skill dependency 只来自可选 Manifest：
+
+```toml
+[dependencies]
+"owner/repo/helper" = "^1.0"
+```
+
+没有 Manifest：
+
+```text
+AKM graph node has no declared outgoing Skill edges
+```
+
+AKM 不从 `SKILL.md` 自然语言、目录名称或引用文件中猜测结构化 dependency。
+
+Dependency graph v0 不允许 cycle：
+
+```text
+A -> B -> C -> A
+```
+
+发现时报告完整 cycle path。
+
+## 9. 同名 Skill
+
+Project Skill Library 保留：
+
+```text
+<owner>/<repo>/<package>
+```
+
+因此：
+
+```text
+A/repo/foo
+B/repo/foo
+```
+
+在 AKM core 层可以共存。
+
+执行器若需要扁平 namespace，由 executor adapter 解决冲突，不属于 Package Resolver 错误。
+
+## 10. Repository-wide install
+
+用户安装：
 
 ```text
 owner/repo@1.4.0
 ```
 
-这表示：
+Release 模式：
 
-1. 选择 Release `1.4.0`；
-2. 枚举该 Release 中全部 `*.akm.tar.gz`；
-3. 每个 Artifact 校验为合法 Package；
-4. 将这些 Package 全部视为 top-level selected Packages；
-5. 继续解析它们的 dependency closure。
+1. 取得 Release source snapshot；
+2. discover 全部合法 `SKILL.md` Package Roots；
+3. 全部作为顶层选择；
+4. 对存在 Manifest 的 Package 展开 dependency closure。
 
-Repository-wide target 只允许作为用户顶层意图，不允许 Package dependency 写成 `owner/repo`。
+Git 模式：
 
-## 10. Resolution 输出
+```text
+owner/repo@main --git
+```
+
+同理，只是 source 来自 cached Git exact commit。
+
+Repository-wide target 只作为用户顶层意图；Manifest dependency 必须精确到 `owner/repo/package`。
+
+## 11. Resolution 输出
 
 至少包含：
 
 ```text
 repositories:
-  exact GitHub Release or Git commit records
+  exact release/tag/commit or exact git commit
 
 packages:
-  exact owner/repo/package selections
+  owner/repo/package
+  SKILL.md.name
+  package-root
+  content digest
+  optional manifest digest
+  optional dependencies document digest
 
 edges:
-  exact dependency edges
+  manifest-declared exact dependency edges
 
-common_software_requirements:
-  package -> [software] requirements
+common software requirements:
+  optional manifest [software]
 
 warnings:
-  dependency checks that still require Agent inspection
+  optional dependency checks still requiring Agent inspection
 ```
 
-Resolver 不安装软件，也不决定特殊依赖如何解决。
+## 12. Install Plan
 
-## 11. Install Plan
+### Source fetch
 
-Planner 把 Resolution 与本地状态组合成：
+- 哪些 Release archive/Asset 需要下载；
+- 哪些 Git cache 需要 clone/fetch；
+- 哪些 Store snapshot 已存在可复用。
 
-### Fetch
+### Discovery
 
-- 哪些 Release Artifact 需要下载；
-- 哪些显式 Git source 需要 checkout；
-- 哪些 Package 已在 machine Store。
+- 每个 repository snapshot 发现哪些 `SKILL.md` roots；
+- selector 最终匹配哪个 relative path；
+- 是否有重名/嵌套/非法 frontmatter。
 
 ### Verify
 
-- Asset digest；
-- safe extraction；
-- `package.name/version`；
-- `SKILL.md.name`；
-- `DEPENDENCIES.md` 存在。
+- Release/Asset/Git source provenance；
+- archive/path safety；
+- `SKILL.md`；
+- optional `akm-package.toml`；
+- optional `DEPENDENCIES.md`；
+- content digest。
 
-### Project Skill Library
+### Activate
 
-目标路径始终按：
+按：
 
 ```text
-<owner>/<repo>/<package>/
+.akm/skills/<owner>/<repo>/<package>
+    -> <machine-store>/<content-digest>
 ```
 
-创建/更新/移除 activation leaf。
+建立只读项目库。
 
-### Dependency Check
+### Dependency check
 
-- 对 `[software]` 中 AKM 已知常见软件运行只读 probe；
-- 把观察结果写入项目本地 `.akm/dependencies.lock`；
-- 对 Package 原始 `DEPENDENCIES.md` 只计算 digest、提示仍需 Agent 检查的特殊依赖，不修改 Package 文件；
-- Package 或依赖说明 digest 变化时，把旧特殊检查结果视为 stale/unknown。
+只有存在 `[software]` 才运行对应 common probes；只有存在 `DEPENDENCIES.md` 才提示 Agent 存在特殊依赖说明。检查结果写 `.akm/dependencies.lock`。
 
-AKM 不生成 `apt/brew/winget/...` 修复动作。
-
-## 12. 执行顺序
+## 13. 执行顺序
 
 ```text
-parse project requirements
-  -> resolve repository releases / explicit git refs
-  -> for Git: fetch exact commit and discover Package Roots
-  -> resolve package closure
-  -> build fetch plan
-  -> fetch & verify Package Artifacts / Git snapshots
-  -> put immutable payload in machine Store
-  -> materialize hierarchical Project Skill Library
-  -> run common software probes
+parse target/project manifest
+  -> choose release or explicit git source
+  -> obtain exact repository snapshot
+  -> discover SKILL.md roots
+  -> select requested package(s)
+  -> read optional AKM metadata
+  -> expand dependency closure
+  -> build complete plan
+  -> fetch/materialize selected roots
+  -> verify + put immutable Store
+  -> rebuild Project Skill Library
+  -> run common probes
   -> update .akm/dependencies.lock
   -> write akm.lock atomically
 ```
 
-需要修改宿主软件环境的工作发生在 AKM 之后：Agent 读取不可变 Package `DEPENDENCIES.md` 与 `.akm/dependencies.lock`，说明缺口，获得用户明确同意后再使用当前环境真实可用的方式处理；处理完成只更新 `.akm/dependencies.lock`。
+## 14. Frozen / offline
 
-## 13. Frozen 与 offline
+`frozen`：只接受 Lock 的 exact source snapshot、package-root、content digest 和 graph，不重新选择。
 
-### `frozen`
+`offline`：不访问 GitHub、不 fetch Git；只能使用本地 cache/Store 与 Lock。
 
-只接受 Lock 已确定的 exact Release/Git commit 和 Package graph；Manifest/Project requirement 不一致就失败，不重新求解。
+当 Store 已有需要的 Package snapshot 时，即使 Git source cache 被 GC，也能离线激活；如果 Store 缺失而只剩 Lock，没有对应 source cache/archive，则 offline 失败。
 
-### `offline`
+## 15. remove / orphan / why
 
-不访问 GitHub，也不 clone/fetch Git；只能使用 Lock 与本地 machine Store/cache 已存在内容。
+删除顶层 target 后重新计算 manifest-declared dependency closure。不可达 Package 从 Project Skill Library 移除；Store 进入独立 GC 候选。
 
-二者相互独立。
+`why owner/repo/package` 从 Lock graph 反向构造路径。
 
-## 14. remove / orphan / why
-
-删除顶层 target 后重新计算 dependency closure。
-
-新的 graph 中不可达 Package 从 Project Skill Library 移除；machine Store 内容进入 GC candidate。
-
-`why owner/repo/package` 从 Lock graph 反向构造依赖路径，不维护第二套 reverse-dependency 状态。
-
-## 15. 结构化错误
+## 16. 结构化错误
 
 至少区分：
 
-- `NoReleaseSolution`；
 - `UnavailableRelease`；
-- `UnavailablePackageAsset`；
-- `DependencyCycle`；
-- `InvalidPackageManifest`；
-- `GitSourceNotExplicit`；
-- `PackageDiscoveryFailed`；
+- `UnavailableGitRef`；
 - `PackageNotFound`；
 - `AmbiguousPackageDiscovery`；
-- `NestedPackageRoots`；
-- `RepositorySourceConflict`；
+- `NestedPackageRoot`；
+- `InvalidSkillMetadata`；
+- `InvalidOptionalManifest`；
+- `DependencyCycle`；
 - `ArtifactIntegrityMismatch`；
-- `UnsafeArtifact`。
-
-执行器层的扁平 Skill name collision 不属于 core resolver error。
+- `UnsafeArtifact`；
+- `OfflineSourceUnavailable`。

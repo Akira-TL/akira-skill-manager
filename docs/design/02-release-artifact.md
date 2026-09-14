@@ -1,253 +1,251 @@
-# GitHub Release Artifact v0 工作草案
+# GitHub Release 获取与 Artifact v0 工作草案
 
 ## 1. 目标
 
-AKM v0 的稳定分发入口直接使用 GitHub Release。
+AKM v0 优先使用 GitHub Release 作为稳定版本入口，但 **不要求 repository 为 AKM 专门发布自定义 Asset**。
 
-一个 repository Release 可以发布多个 Skill Package，但每个 Skill Package 都是独立 Artifact：
-
-```text
-Release 1.4.0
-├── ask-matt.akm.tar.gz
-├── implement.akm.tar.gz
-├── tdd.akm.tar.gz
-└── code-review.akm.tar.gz
-```
-
-安装：
+用户请求：
 
 ```text
-Akira-TL/matt-skills/ask-matt@1.4.0
+owner/repo[/package]@1.4.0
 ```
 
-只需要获取 `ask-matt.akm.tar.gz`，再按 Manifest dependency closure 获取其他 Artifact。
+AKM 首先解析对应 GitHub Release/tag，再取得该版本对应的不可变源码快照，随后按 `SKILL.md` 发现一个或多个 Skill Package。
 
-安装：
+因此普通只有 `SKILL.md` 的 GitHub Skill repository，只要有 Release，也可以直接安装。
+
+## 2. Release source 的两种获取路径
+
+### 基础路径：Release 源码归档
+
+所有 GitHub repository 都可以通过 Release/tag 对应的源码 archive 取得版本快照。AKM 可以下载该版本的 tarball/zip，安全解包后执行 Package discovery。
+
+流程：
 
 ```text
-Akira-TL/matt-skills@1.4.0
+resolve release/version
+  -> resolve exact tag/commit
+  -> download release source archive
+  -> verify provider metadata / local digest
+  -> safe extract
+  -> discover SKILL.md Package Roots
+  -> select requested package(s)
+  -> snapshot into machine Store
 ```
 
-则安装该 Release 中全部 `*.akm.tar.gz` Package Artifact。
+这是 v0 的最低兼容路径，不要求仓库作者了解 AKM。
 
-## 2. Artifact 文件名
+### 可选优化：AKM Package Asset
 
-v0 使用：
+作者可以额外在 GitHub Release 上传：
+
+```text
+ask-matt.akm.tar.gz
+implement.akm.tar.gz
+```
+
+如果请求明确 package，并且 Release 中存在可验证的同名 AKM Asset，AKM 可以直接下载该 Package Artifact，避免下载整个 repository snapshot。
+
+但 Asset 是优化，不是 Package 准入条件。
+
+## 3. Package discovery
+
+无论 Release 源码归档还是 Git source，核心发现规则一致：
+
+```text
+tracked/versioned tree 中的 SKILL.md
+        ↓
+其父目录 = Package Root candidate
+        ↓
+解析 SKILL.md.name
+        ↓
+basename(root) == SKILL.md.name
+```
+
+可选文件：
+
+```text
+akm-package.toml
+DEPENDENCIES.md
+```
+
+存在就读取增强信息，不存在不影响安装。
+
+指定：
+
+```text
+owner/repo/ask-matt@1.4.0
+```
+
+则按 `SKILL.md.name == "ask-matt"` 选择唯一 candidate。
+
+省略 package：
+
+```text
+owner/repo@1.4.0
+```
+
+则选择该版本快照中全部合法 Skill Package candidate。
+
+## 4. Release version 的作用域
+
+GitHub 模式的 `@1.4.0` 是 repository Release version，而不是 Package 内隐藏的第二套 version。
+
+因此没有 `akm-package.toml` 时也不存在版本缺失：
+
+```text
+owner/repo/foo@1.4.0
+              ^^^^^
+          repository Release
+```
+
+Lock 最终保存 Release identity/tag、exact commit 与选中 Package Root。
+
+如果可选 Manifest 存在，其中也不需要重复声明 version。
+
+## 5. AKM 专用 Asset
+
+如果作者提供：
 
 ```text
 <package-name>.akm.tar.gz
 ```
 
-例如：
-
-```text
-ask-matt.akm.tar.gz
-```
-
-版本不重复写入 Artifact 文件名，因为 version 已由 GitHub Release 选定。
-
-AKM 校验：
-
-```text
-asset package name
-== akm-package.toml package.name
-== SKILL.md.name
-```
-
-## 3. Artifact 内部布局
-
-Archive root 直接就是 Package Root 内容，不额外套 wrapper：
+Archive root 直接是 Skill Root：
 
 ```text
 SKILL.md
-akm-package.toml
-DEPENDENCIES.md
+akm-package.toml       # optional
+DEPENDENCIES.md        # optional
 scripts/
 references/
 assets/
 ...
 ```
 
-因此解包后的 snapshot 本身就是一个合法 Skill Package。
-
-## 4. Release version 校验
-
-假设用户请求：
+校验至少包括：
 
 ```text
-Akira-TL/matt-skills/ask-matt@1.4.0
+asset basename package name == SKILL.md.name
 ```
 
-AKM：
+如果 Manifest 存在，再验证其 schema/dependencies/software 语法。
 
-1. 找到 repository Release `1.4.0`；
-2. 找到 `ask-matt.akm.tar.gz`；
-3. 解包读取 `akm-package.toml`；
-4. 要求 `package.name = "ask-matt"`；
-5. 要求 `package.version = "1.4.0"`；
-6. 要求 `SKILL.md.name = "ask-matt"`。
+AKM Asset 不得包含多个独立 Skill Root。
 
-任一不一致都拒绝安装。
+## 6. 安全解包
 
-因此 GitHub v0 模式没有第二套隐藏 package version。
+AKM 管理的 Package Artifact v0 只允许普通文件和目录，并拒绝：
 
-## 5. Package discovery
-
-### Release 模式
-
-GitHub Release 中所有符合：
-
-```text
-<valid-package-name>.akm.tar.gz
-```
-
-的 asset 都是 AKM Package candidate。
-
-指定 package 时只查对应 asset。
-
-未指定 package 时枚举全部 candidate，逐个校验 Manifest 和 `SKILL.md` 后安装。
-
-Repository 的普通 Release asset，例如：
-
-```text
-source.zip
-manual.pdf
-screenshots.zip
-```
-
-不属于 AKM Package，不参与 discovery。
-
-### Git 模式
-
-显式 `--git` 时，不依赖 Release asset 名，也不能假设 Package 位于固定目录。
-
-AKM 在 exact commit 的 tracked Git tree 中枚举 `akm-package.toml`；每个 Manifest 的父目录是 Package Root candidate，并要求同目录存在 `SKILL.md`。
-
-随后校验：
-
-```text
-basename(package-root)
-== package.name
-== SKILL.md.name
-```
-
-指定 `owner/repo/package` 时按 `package.name` 筛选；省略 package 时选择全部合法 candidate。发现的 repository-relative `package-root` 写入 Lock。
-
-同名 Package、嵌套 Package Root 或零 candidate 都必须返回明确 discovery error，不通过目录顺序猜测。
-
-详细算法见 `04-resolver-and-install-plan.md`。
-
-## 6. 归档格式
-
-v0 采用 `tar.gz`。
-
-原因：
-
-- 可保留 executable bit；
-- 各主要平台有成熟实现；
-- GitHub Release 可直接托管；
-- 不要求 zstd 等额外解压工具。
-
-未来可以增加其他 encoding，但同一 Release asset 必须有明确 encoding 与 integrity。
-
-## 7. 安全解包
-
-Artifact v0 只允许普通文件和目录。
-
-拒绝：
-
-- symlink；
-- hardlink；
+- absolute path；
+- `..` traversal；
+- 规范化后重复路径；
 - device node；
 - FIFO；
-- absolute path；
-- `..` path traversal；
-- 规范化后重复路径；
-- 任何解包后逃出 Package Root 的内容。
+- 会逃出 Package Root 的链接或路径。
 
-Package 运行时也不能依赖 repository 里的 sibling/shared 文件。
+对于 GitHub provider 生成的 repository source archive，解包同样必须经过 path traversal 防护；完成 discovery 后只把选中的 Skill Root snapshot 放入 Package Store，不把整仓直接激活。
 
-## 8. 完整性
+## 7. 完整性
 
-Artifact 下载后至少计算 SHA-256：
+AKM 对实际下载 bytes 计算 SHA-256，并把 source provenance 写入 `akm.lock`。
+
+Release source archive 至少记录：
 
 ```text
-sha256:<64-hex>
+repository
+release/tag
+exact commit
+archive digest
+selected package-root
+package content digest
 ```
 
-Lock 记录：
+AKM Package Asset 额外记录：
 
 ```text
-GitHub repository
-Release version/id
 asset name/id
 asset digest
-local SHA-256
 ```
 
-如果 GitHub Release Asset metadata 提供 digest，AKM 应比较 GitHub metadata 与本地实际 digest。
+GitHub API 若提供 provider digest，应与本地计算结果比较；hash integrity 与 publisher trust 仍是两件不同的事情。
 
-若未来发布流程需要更强的独立校验，可以在 Release 中增加 checksum/attestation asset；这不改变 Package Artifact 布局。
-
-## 9. 安装流程
-
-指定 Package：
+## 8. Release 安装流程
 
 ```text
 owner/repo/package@version
-```
-
-流程：
-
-```text
-resolve GitHub Release
-  -> find <package>.akm.tar.gz
-  -> download temp file
-  -> verify digest
-  -> safe extract
-  -> validate akm-package.toml
-  -> validate SKILL.md
-  -> validate DEPENDENCIES.md exists
-  -> insert immutable snapshot into machine Store
-  -> materialize project Skill Library leaf as read-only Store link
-  -> run common dependency probes
+  -> resolve GitHub Release
+  -> pin exact commit
+  -> if valid package-specific AKM asset exists:
+       download/verify/extract that asset
+     else:
+       download/verify/extract release source archive
+       discover all SKILL.md roots
+       select SKILL.md.name == package
+  -> read optional akm-package.toml
+  -> read optional DEPENDENCIES.md
+  -> snapshot selected Skill Root
+  -> put immutable snapshot into machine Store
+  -> link Project Skill Library
+  -> run any structured common software probes
   -> update .akm/dependencies.lock
 ```
 
-## 10. Git fallback 不是 Release fallback
+Repository-wide install省略 selector 时选择全部发现的合法 Skill Root。
 
-找不到：
+## 9. 没有 Release 时使用 Git Source Cache
 
-```text
-owner/repo/package@version
-```
-
-对应 Release/asset 时，默认返回明确错误。
-
-只有显式：
+如果没有合适 Release，AKM 不静默改变 source。用户显式选择 Git source 后：
 
 ```text
---git
+owner/repo/package@main --git
 ```
 
-或等价项目配置，才 clone repository 并走 Git Package discovery。
-
-这避免一次“稳定版安装”在用户不知道的情况下变成任意 branch checkout。
-
-## 11. Store
-
-机器 Store 保存已经验证的不可变 Package snapshot。
-
-Store 的内部目录可以内容寻址；它不需要复刻用户安装坐标层级。来源层级由 Lock 和 Project Skill Library 保存。
-
-例如：
+AKM 使用机器级 Git source cache：
 
 ```text
-machine store:
-  sha256/<digest>/...
-
-project library:
-  .akm/skills/Akira-TL/matt-skills/ask-matt -> machine store entry
+~/.cache/akm/git/github.com/<owner>/<repo>.git/
 ```
 
-Project leaf 直接链接完整不可变 Package Root。宿主软件与特殊依赖的当前状态统一保存在 `.akm/dependencies.lock`，不修改或复制 Package 内的 `DEPENDENCIES.md`。
+第一次获取 repository；以后安装同 repo 的 branch/tag/commit 复用 cache，只 fetch 缺失 objects/ref。
+
+随后：
+
+```text
+resolve ref -> exact commit
+  -> inspect/materialize exact commit from cache
+  -> discover SKILL.md roots
+  -> select package(s)
+  -> snapshot selected Skill Root(s)
+  -> Package Store
+```
+
+项目不直接引用 mutable Git cache。
+
+## 10. Source Cache 与 Package Store
+
+二者职责必须分开：
+
+```text
+Git Source Cache
+- 缓存 repository Git objects
+- 为 discovery 与 snapshot 提供源码
+- 可删除并重新下载
+- 不直接暴露给 executor
+
+Package Store
+- 保存已选择 Skill Root 的 immutable snapshot
+- content-addressed 去重
+- Project Skill Library 的真实链接目标
+```
+
+删除 Source Cache 不破坏已经存在于 Store 的项目环境；未来需要新的 Git commit 时再重新 fetch。
+
+## 11. Cache GC
+
+v0 至少保留简单策略：
+
+- Git source cache 是 disposable cache；
+- 可以按最近使用时间/容量清理；
+- 清理前不需要检查 Project Skill Library，因为项目引用 Store，不引用 source cache；
+- Package Store GC 则必须单独考虑项目引用和 Lock，不能与 source cache GC 混为一谈。
