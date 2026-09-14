@@ -125,7 +125,7 @@ ASCII bytes: "SKILOOM-PACKAGE-V1\0"
 Package Manifest schema = 1
 Repository Discovery schema = 1
 Project Manifest schema = 1
-Project Lock lock-version = existing v0 generation
+Project Lock lock-version = 1
 activation/dependency local lock generations = existing reference generations
 ```
 

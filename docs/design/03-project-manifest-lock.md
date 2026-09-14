@@ -187,12 +187,12 @@ dependencies-doc-digest
 
 ## 6. Canonical serialization
 
-Skiloom 自己生成 `skiloom.lock`；v0 writer 固定：
+Skiloom 自己生成 `skiloom.lock`；v0 Project Lock format 固定 `lock-version = 1`。Canonical writer 固定：
 
 1. UTF-8；
 2. LF line endings；
 3. 不生成注释；
-4. `lock-version` 位于最前；
+4. `lock-version = 1` 位于最前；
 5. `[[requirement]]` 按 `coordinate` 的 UTF-8 bytes 升序；
 6. `[[repository]]` 按 `coordinate` 的 UTF-8 bytes 升序；
 7. `[[package]]` 按 `coordinate` 的 UTF-8 bytes 升序；
