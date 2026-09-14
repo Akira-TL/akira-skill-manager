@@ -1,10 +1,12 @@
-# Activation Runtime State v0 候选协议
+# Activation Runtime State v0
 
-状态：Proposed
+状态：Accepted
+
+对应 ADR：[`0009-activation-runtime-ownership.md`](../adr/0009-activation-runtime-ownership.md)
 
 对应 Wayfinder：#10 `Define Package Store and project activation ownership`
 
-本文件只收敛 ADR 0008 已确定的扁平 `.agents/skills/` 激活模型之下，尚未 Accepted 的本机 activation state、平台 materialization、drift handling 与 Store GC 边界。
+本文件定义 ADR 0008 已确定的扁平 `.agents/skills/` 激活模型之下，本机 activation state、平台 materialization、drift handling 与 Store GC 边界。
 
 ## 1. `activation.lock` 只保存 ownership + materialization fact
 
@@ -201,7 +203,7 @@ Git Source Cache 与 Package Store 的 GC 继续分开。
 
 `.agents/skills/` 中的 `symlink` / `junction` 会直接引用 Store entry。单凭当前 project 或某个 `activation.lock`，AKM 无法知道同一机器上是否还有其他 project 引用一个 digest。
 
-因此 v0 候选规则：
+因此 v0 规则：
 
 ```text
 不做 destructive automatic Package Store GC
@@ -216,9 +218,9 @@ Git Source Cache 与 Package Store 的 GC 继续分开。
 
 未来若需要真正 Store GC，再单独设计机器级 project/reference registry；只有能证明没有任何活跃项目引用时才删除。
 
-## 8. 候选结论
+## 8. v0 结论
 
-如果本轮接受，则 #10 可以收敛为：
+#10 的 activation/store ownership 边界收敛为：
 
 ```text
 resolved Package

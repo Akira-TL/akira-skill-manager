@@ -94,7 +94,11 @@ Package Snapshot 的 canonical 内容身份。v0 使用 `AKM-PACKAGE-V1`：只�
 
 ## Activation State Lock
 
-项目本地 `.agents/.akm/activation.lock`。它保存 AKM 当前管理的 `.agents/skills/` entry、Package coordinate、content digest 与 materialization mode，用于安全 update/remove/doctor；属于可重建本机状态，默认不提交版本控制。
+项目本地 `.agents/.akm/activation.lock`。每个 `[[skill]]` 只保存 `activation-name`、Package coordinate、原始 Package Content Digest 与本机 materialization mode（`symlink` / `junction` / `copy`）。POSIX 未 rename 优先 symlink，Windows 未 rename 优先 junction，rename 一律 copy。它用于安全 update/remove/doctor；missing activation 可自动重建，modified/replaced activation 默认 fail closed；属于可重建本机状态，默认不提交版本控制。
+
+## Package Store GC Boundary
+
+AKM v0 不执行 destructive automatic Package Store GC。项目 remove 只移除 activation/state，不删除共享 Store entry；Git Source Cache 可以独立做 LRU/size/age pruning。未来只有引入 machine-wide project/reference registry、能够证明 digest 没有任何活跃项目引用后，才重新定义 destructive Store GC。
 
 ## Common Software Requirement
 

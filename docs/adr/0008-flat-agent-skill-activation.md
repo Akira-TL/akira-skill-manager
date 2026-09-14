@@ -73,7 +73,7 @@ basename(Skill Root) == SKILL.md.name
 
 ## Activation state
 
-`.agents/.akm/activation.lock` 保存 AKM 当前管理的扁平激活项，用于安全 update/remove/doctor；它不是 Package resolution Lock，也不改变 Package provenance。
+`.agents/.akm/activation.lock` 保存 AKM 当前管理的扁平激活项，用于安全 update/remove/doctor；它不是 Package resolution Lock，也不改变 Package provenance。字段、平台 materialization、drift recovery 与 Store GC 边界由 ADR 0009 进一步固定。
 
 AKM 不接管 `.agents/skills/` 中未在 activation state 中声明的既有目录/链接。遇到这些路径一律按冲突处理，禁止静默覆盖或删除。
 

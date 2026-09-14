@@ -175,11 +175,12 @@ Store key 不含 GitHub owner/repo、Release、commit 或 package-root；这些 
 
 - 默认 `activation-name = SKILL.md.name`；
 - 在任何写入前做完整 activation-name collision preflight；
-- 未 rename Package 可直接链接 immutable Store entry；
-- rename Package materialize 项目本地 view，并同步修改顶层 `SKILL.md.name`；
+- POSIX 未 rename 优先 `symlink`、Windows 未 rename 优先 `junction`，失败时 fallback `copy`；
+- rename Package 一律 `copy`，并同步修改顶层 `SKILL.md.name`；
+- `.agents/.akm/activation.lock` 每项只保存 activation name、coordinate、content digest 与 `symlink|junction|copy` mode；
+- missing managed activation 可自动重建；modified/replaced managed activation fail closed，并只允许显式 `restore` / `detach` / `abort`；
 - 未经用户明确 rename 时，冲突返回 `ActivationNameConflict`；
-- 不覆盖/删除未由 AKM activation state 管理的既有 Skill；
-- 维护 `.agents/.akm/activation.lock`。
+- 不覆盖/删除未由 AKM activation state 管理的既有 Skill。
 
 v0 的 executor discovery 面直接就是 `.agents/skills/`，不再建立 AKM 私有分层 Skill Library 或额外 executor adapter view。
 
@@ -204,10 +205,9 @@ update_project()
 remove_target()
 doctor_project()
 cache_gc()
-store_gc()
 ```
 
-Source Cache GC 和 Package Store GC 必须分开。
+`cache_gc()` 只处理 disposable Git Source Cache。v0 不提供 destructive automatic Package Store GC；Store entry 在项目 remove 后仍保留，直到未来有 machine-wide reference registry 能证明无活跃引用。
 
 ## 明确避免
 

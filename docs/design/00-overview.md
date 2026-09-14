@@ -43,7 +43,7 @@
 - AKM 项目状态统一位于 `.agents/.akm/`：`akm.toml`、`akm.lock`、`activation.lock`、`dependencies.lock`；
 - `.agents/.akm/akm.toml` 保存 top-level requirements，Release 用 version string，Git 用 `{ git = "<ref>" }`；用户批准的本地 Skill rename 写入 `[renames]`；同一 repository 不允许混用多个 Git ref 或 Release/Git source；
 - `.agents/.akm/akm.lock` 采用 canonical `requirement -> repository -> package` 三层结构，source provenance 只写一次，Package Record 只保存 `package-root`、`content-digest` 与 exact dependency edges；
-- `.agents/.akm/activation.lock` 单独保存当前 `.agents/skills/` 的 AKM-managed activation state；当前宿主依赖状态单独写入 `.agents/.akm/dependencies.lock`；
+- `.agents/.akm/activation.lock` 只保存 `activation-name`、Package coordinate、`content-digest` 与 `mode`（`symlink` / `junction` / `copy`）；POSIX 未 rename 优先 symlink，Windows 未 rename 优先 junction，rename 一律 copy；managed drift 默认 fail closed；
 - AKM 只基础探测少量常见软件，不负责自动安装/修复宿主依赖。
 
 ## 核心关系
@@ -92,9 +92,8 @@ v0 不提前引入：
 ## 下一步仍需收敛
 
 - `.agents/.akm/dependencies.lock` 的最终字段与状态失效规则；
-- `.agents/.akm/activation.lock` 的最终字段、平台 materialization、drift recovery 与 Package Store GC 边界（当前见 Proposed [`activation-runtime-state.md`](activation-runtime-state.md)）；
 - version range 的最终 grammar；
-- Git Source Cache GC 与 Package Store GC 的策略；
+- Git Source Cache GC 的具体 LRU/size/age 策略；
 - optional dependencies / feature flags 是否需要进入后续版本。
 
 ## 协议稳定后的候选实现顺序

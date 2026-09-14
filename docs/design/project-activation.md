@@ -110,27 +110,30 @@ rename 后 AKM 创建项目本地 managed activation view：
 
 AKM 不自动重写 Skill 正文、scripts、references 中对旧名字的自然语言/业务引用。用户选择 rename 时必须看到这一风险提示。
 
-## 6. 未 rename Package
+## 6. Materialization mode
 
-未 rename 时，AKM 可以直接把：
-
-```text
-.agents/skills/<skill-name>
-```
-
-链接到：
+v0 的物理激活方式固定为：
 
 ```text
-<machine-store>/sha256/<content-digest-hex>
+symlink
+junction
+copy
 ```
 
-只要 executor 从 `.agents/skills/<skill-name>` 观察到合法 Skill Root 即满足协议。具体 link/materialize 策略属于实现层；不能改变 Package Store 的 immutable 语义。
+规则：
+
+- POSIX 未 rename：优先 directory symlink 到 immutable Store entry，失败时 fallback `copy`；
+- Windows 未 rename：优先 directory junction 到 immutable Store entry，失败时 fallback `copy`；
+- 任意 rename：一律 `copy`，因为必须项目本地改写顶层 `SKILL.md.name`；
+- v0 不引入 hardlink、reflink、bind mount、overlay filesystem 等平台优化。
+
+Materialization strategy 只改变项目激活的物理表现，不改变 Package Store `content-digest`。
 
 ## 7. `activation.lock`
 
 `.agents/.akm/activation.lock` 是本机可重建的 AKM activation ownership/state 文件，默认不提交。
 
-示意：
+Canonical schema：
 
 ```toml
 lock-version = 1
@@ -139,15 +142,16 @@ lock-version = 1
 activation-name = "ask-matt"
 coordinate = "Akira-TL/matt-skills/ask-matt"
 content-digest = "sha256:3333..."
-mode = "store-link"
+mode = "symlink"
 
 [[skill]]
 activation-name = "ask-matt-other"
 coordinate = "someone/other-repo/ask-matt"
 content-digest = "sha256:aaaa..."
-mode = "renamed-view"
-source-name = "ask-matt"
+mode = "copy"
 ```
+
+每条记录固定只有 `activation-name`、`coordinate`、`content-digest`、`mode`。不保存 `source-name`、第二套 activation digest、绝对路径、platform 或 timestamp。Rename 可由 `activation-name != package-name` 推导。
 
 它用于：
 
@@ -158,11 +162,31 @@ source-name = "ask-matt"
 
 portable rename intent 不依赖 `activation.lock`，而在 `.agents/.akm/akm.toml [renames]` 中保存。
 
-## 8. 删除与更新
+## 8. Drift、删除与更新
 
-AKM 删除 Package 时，只删除 `activation.lock` 明确归属于该 Package 的 `.agents/skills/<activation-name>`。
+`activation.lock` 声明的 path 若缺失，状态为：
 
-如果 managed activation 已被外部修改且不能证明仍是 AKM 生成内容，update/remove 必须 fail closed，不把未知用户内容当成可安全覆盖对象。
+```text
+MissingManagedActivation
+```
+
+因为目标路径不存在未知用户内容，普通 `sync` 可以自动重建。
+
+如果 symlink/junction target 被修改、link 被普通目录替换，或 copy 的文件集合/bytes 被改动，状态为：
+
+```text
+ModifiedManagedActivation
+```
+
+此时 `sync` / `update` / `remove` fail closed。用户显式选择：
+
+```text
+restore  -> 丢弃本地偏移，重建 expected activation
+detach   -> 保留现有内容，移除 AKM ownership
+abort    -> 不修改
+```
+
+AKM 删除 Package 时，只删除经过验证且由 `activation.lock` 明确归属于该 Package 的 `.agents/skills/<activation-name>`。v0 不自动 adopt 修改后的 activation 为新 Package。
 
 ## 9. 与 Package Store 的边界
 
@@ -180,3 +204,5 @@ Package Store
 ```
 
 因此同名冲突是 activation 层问题，不回流到 Package Resolver，也不改变 Package Content Digest。
+
+Package Store v0 不执行 destructive automatic GC：单个 project 无法证明机器上没有其他项目通过 symlink/junction 引用某个 digest。Git Source Cache 可以独立采用 LRU、size cap 或 age based pruning；真正的 Store GC 留待未来引入 machine-wide project/reference registry 后再定义。
