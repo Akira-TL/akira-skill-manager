@@ -15,6 +15,7 @@
 7. [`05-software-dependencies.md`](05-software-dependencies.md)
 8. [`06-module-boundaries.md`](06-module-boundaries.md)
 9. [`package-snapshot-digest.md`](package-snapshot-digest.md)
+10. [`project-activation.md`](project-activation.md)
 
 ## 已明确的 v0 方向
 
@@ -34,13 +35,14 @@
 - Git source `@ref` 最终锁定 exact commit；
 - Git source 进入机器级 disposable source cache，再从 exact commit discovery/snapshot Skill Root；
 - repository 默认零配置扫描合法 `SKILL.md`；可选 root-level `akm-repo.toml` 只过滤 discovery 范围，不改变 `SKILL.md` 的准入地位；`exclude` 优先于 `include`，v0 glob 只支持 literal / `*` / `**` / `?`；
-- Project Skill Library 按 `<owner>/<repo>/<package>` 分层，不由 AKM core 扁平化；
-- 同名 Skill 在 AKM library 层可以共存；最终 discovery 交给 executor adapter/执行器；
+- resolved Skill 直接扁平激活到项目 `.agents/skills/<activation-name>`；默认 activation name 等于 `SKILL.md.name`；
+- 不同 source 的同名 Skill 会在 activation 层真实冲突；AKM 必须在写入前提示用户为新安装项 rename 或放弃，不能自动覆盖/自动改名；
 - Package snapshot 以 `AKM-PACKAGE-V1` canonical tree hash 计算 `content-digest`：独立 nested Skill 从祖先 snapshot 裁掉，v0 禁止 symlink/特殊文件，只保留 relative path、executable bit 与 exact bytes；
 - Package Store 直接以 `content-digest` 寻址并跨来源去重；Package payload 机器级共享且 immutable；
-- `akm.toml` 只保存 top-level requirements：Release 用 version string，Git 用 `{ git = "<ref>" }`；同一 repository 不允许混用多个 Git ref 或 Release/Git source；
-- `akm.lock` 采用 canonical `requirement -> repository -> package` 三层结构，source provenance 只写一次，Package Record 只保存 `package-root`、`content-digest` 与 exact dependency edges；
-- 当前宿主依赖状态单独写入 `.akm/dependencies.lock`，永不改 Package 文件；
+- AKM 项目状态统一位于 `.agents/.akm/`：`akm.toml`、`akm.lock`、`activation.lock`、`dependencies.lock`；
+- `.agents/.akm/akm.toml` 保存 top-level requirements，Release 用 version string，Git 用 `{ git = "<ref>" }`；用户批准的本地 Skill rename 写入 `[renames]`；同一 repository 不允许混用多个 Git ref 或 Release/Git source；
+- `.agents/.akm/akm.lock` 采用 canonical `requirement -> repository -> package` 三层结构，source provenance 只写一次，Package Record 只保存 `package-root`、`content-digest` 与 exact dependency edges；
+- `.agents/.akm/activation.lock` 单独保存当前 `.agents/skills/` 的 AKM-managed activation state；当前宿主依赖状态单独写入 `.agents/.akm/dependencies.lock`；
 - AKM 只基础探测少量常见软件，不负责自动安装/修复宿主依赖。
 
 ## 核心关系
@@ -65,8 +67,11 @@ Git Source Cache
 Package Store
     └── immutable selected Skill Root snapshots
 
-Project Skill Library
-    └── <owner>/<repo>/<package>/ -> Store
+Project Skill Activation
+    └── .agents/skills/<activation-name>
+
+AKM Project State
+    └── .agents/.akm/{akm.toml, akm.lock, activation.lock, dependencies.lock}
 ```
 
 ## 当前没有的东西
@@ -77,7 +82,7 @@ v0 不提前引入：
 - 独立 Registry namespace/package identity；
 - Multi-Skill bundle；
 - Package Index 作为 GitHub 的强制中间层；
-- 扁平 Skill name 全局唯一约束；
+- 全局 Skill name registry（只在单个项目 `.agents/skills/` activation 层要求名字唯一）；
 - Software Provider 自动安装体系；
 - Package 自定义系统安装脚本；
 - repository runtime shared directory；
@@ -85,8 +90,8 @@ v0 不提前引入：
 
 ## 下一步仍需收敛
 
-- `.akm/dependencies.lock` 的最终字段与状态失效规则；
-- Project Skill Library 到不同 executor 的发现适配；
+- `.agents/.akm/dependencies.lock` 的最终字段与状态失效规则；
+- `.agents/.akm/activation.lock` 的最终字段与平台 materialization 细节；
 - version range 的最终 grammar；
 - Git Source Cache GC 与 Package Store GC 的策略；
 - optional dependencies / feature flags 是否需要进入后续版本。
@@ -97,7 +102,7 @@ v0 不提前引入：
 2. Release/Git source cache + Package discovery；
 3. optional AKM metadata parser + dependency resolver；
 4. immutable Package Store；
-5. hierarchical Project Skill Library activation；
-6. common dependency probes + `.akm/dependencies.lock`；
-7. executor adapters；
+5. flat `.agents/skills/` activation + collision/rename handling；
+6. common dependency probes + `.agents/.akm/dependencies.lock`；
+7. activation ownership/doctor/remove；
 8. CLI/MCP surface。

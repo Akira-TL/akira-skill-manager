@@ -4,3 +4,6 @@ schema = 1
 "Akira-TL/matt-skills/ask-matt" = "^1.4"
 "Akira-TL/skills/browser-access" = "^2.0"
 "example/special-skills/special-skill" = { git = "main" }
+
+[renames]
+"example/special-skills/special-skill" = "special-skill-local"

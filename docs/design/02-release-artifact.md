@@ -123,9 +123,9 @@ Package 记录：
 ```toml
 [[package]]
 coordinate = "owner/repo/foo"
-name = "foo"
 package-root = "skills/foo"
 content-digest = "sha256:..."
+dependencies = []
 ```
 
 Package content digest 才是 Store snapshot 的内容完整性标识。
@@ -204,7 +204,8 @@ parse owner/repo[/package]@version-range
   -> read optional akm-package.toml / DEPENDENCIES.md
   -> compute Package content digest
   -> put immutable Package snapshot into Store
-  -> activate Project Skill Library
+  -> preflight flat activation names
+  -> activate into .agents/skills/<activation-name>
 ```
 
 Repository-wide target省略 package selector 时，安装该 exact repository snapshot 经唯一 discovery policy 选出的全部 Package。

@@ -46,7 +46,7 @@ Package Root 中可选、不可变的 `DEPENDENCIES.md`。它是 Package author 
 
 ## Dependency State Lock
 
-项目本地 `.akm/dependencies.lock`。它保存 common software probe 与 Agent 对特殊依赖的当前观察结果，并关联 Package content/`DEPENDENCIES.md` digest；属于可重建本机状态，默认不提交版本控制。
+项目本地 `.agents/.akm/dependencies.lock`。它保存 common software probe 与 Agent 对特殊依赖的当前观察结果，并关联 Package content/`DEPENDENCIES.md` digest；属于可重建本机状态，默认不提交版本控制。
 
 ## Skill Dependency
 
@@ -70,23 +70,31 @@ Package Snapshot 的 canonical 内容身份。v0 使用 `AKM-PACKAGE-V1`：只�
 
 ## Project Requirement Record
 
-`akm.lock` 中对 `akm.toml` 顶层 requirement 的规范化语义记录。Release requirement 保存 coordinate + version requirement；Git requirement 保存 coordinate + requested ref。`frozen` 比较 Requirement Set 语义而不是 `akm.toml` 原始 bytes。
+`.agents/.akm/akm.lock` 中对 `.agents/.akm/akm.toml [skills]` 顶层 requirement 的规范化语义记录。Release requirement 保存 coordinate + version requirement；Git requirement 保存 coordinate + requested ref。`frozen` 比较 Requirement Set 语义而不是 `akm.toml` 原始 bytes。
 
 ## Repository Lock Record
 
-`akm.lock` 中 source provenance 的唯一记录。Release source 保存 repository coordinate、规范化 SemVer、actual tag、exact commit 与 immutable signal；Git source 保存 repository coordinate 与 exact commit。Package Record 不重复这些字段。
+`.agents/.akm/akm.lock` 中 source provenance 的唯一记录。Release source 保存 repository coordinate、规范化 SemVer、actual tag、exact commit 与 immutable signal；Git source 保存 repository coordinate 与 exact commit。Package Record 不重复这些字段。
 
 ## Package Lock Record
 
-`akm.lock` 中一个已解析 Package 的精简记录，只保存完整 coordinate、actual package-root、Package Content Digest 与 exact manifest-declared dependency edges；依赖边只写 `owner/repo/package`，其 exact source 由对应 Repository Lock Record 唯一决定。
+`.agents/.akm/akm.lock` 中一个已解析 Package 的精简记录，只保存完整 coordinate、actual package-root、Package Content Digest 与 exact manifest-declared dependency edges；依赖边只写 `owner/repo/package`，其 exact source 由对应 Repository Lock Record 唯一决定。
 
 ## Package Store
 
 机器级共享的不可变 Skill Package Snapshot 存储，直接以 Package Content Digest 作为 key。不同 repository/source 只要 snapshot 内容完全相同就复用同一 Store entry；source provenance 保存在 Lock，不进入 Store key。宿主环境检查状态不写回 Store。
 
-## Project Skill Library
+## Project Skill Activation
 
-项目侧按 `<owner>/<repo>/<package>` 分层组织的 Skill 库，例如 `.akm/skills/Akira-TL/matt-skills/ask-matt`。leaf 链接到 Package Store；最终执行器发现由 executor adapter 或执行器自身负责。
+项目中 executor-visible 的 Skill 直接扁平位于 `.agents/skills/<activation-name>`。默认 activation name 等于 `SKILL.md.name`；不同 source 的同名 Skill 在这里形成真实冲突，AKM 必须提示用户为新安装项 rename 或放弃，不能自动覆盖。
+
+## Activation Rename
+
+项目本地对 resolved Package 的 runtime Skill identity 改名。用户批准后写入 `.agents/.akm/akm.toml [renames]`。Rename 不改变 Package coordinate、source resolution 或 Package Store `content-digest`；AKM 在 `.agents/skills/<new-name>` materialize 合法 activation view，并同步使顶层 `SKILL.md.name == <new-name>`。
+
+## Activation State Lock
+
+项目本地 `.agents/.akm/activation.lock`。它保存 AKM 当前管理的 `.agents/skills/` entry、Package coordinate、content digest 与 materialization mode，用于安全 update/remove/doctor；属于可重建本机状态，默认不提交版本控制。
 
 ## Common Software Requirement
 
@@ -98,4 +106,4 @@ Package Snapshot 的 canonical 内容身份。v0 使用 `AKM-PACKAGE-V1`：只�
 
 ## Install Plan
 
-在安装/同步前形成的 source 获取、Skill discovery、Package snapshot、Store/Project Skill Library 变化及依赖检查计划。AKM 不把缺失宿主软件自动转换为系统安装动作。
+在安装/同步前形成的 source 获取、Skill discovery、Package snapshot、Store 变化、`.agents/skills/` 扁平 activation preflight/rename 以及依赖检查计划。AKM 不把缺失宿主软件自动转换为系统安装动作。

@@ -2,39 +2,51 @@
 
 - 状态：Rejected
 - 日期：2026-09-14
+- 后续修正：ADR 0008 接受“项目 activation 层扁平且同名会冲突”，但仍不接受本 ADR 绑定提出的全局 Package Identity 模型。
 
 ## 原提案
 
-原提案假设 Project Skill View 是扁平的：
+原提案把两个问题绑定在一起：
+
+1. 项目 Skill discovery 面是扁平的，因此不同来源导出同名 `SKILL.md.name` 时会冲突；
+2. 为解决这种冲突，引入独立的全局 Package Identity，并进一步要求“一个 Package Identity 在项目中只能有一个版本”。
+
+## 最终拆分结果
+
+ADR 0008 已确认项目 executor-visible Skill 直接位于：
 
 ```text
-skills/<skill-name>
+.agents/skills/<activation-name>
 ```
 
-因此不同来源只要导出同名 `SKILL.md.name` 就会冲突，并进一步提出“一个 Package Identity 在项目中只能有一个版本”的全局 Package Identity 模型。
-
-## 拒绝原因
-
-AKM v0 已改为按 GitHub 安装坐标分层保存项目 Skill Library：
+因此扁平 runtime name 冲突确实存在。例如：
 
 ```text
-skills/<owner>/<repo>/<package>/
+A/repo/foo
+B/repo/foo
 ```
 
-例如：
+两个 Package 在 source/resolver/Store 层可以独立共存，但默认都要激活为：
 
 ```text
-skills/Akira-TL/matt-skills/ask-matt/
-skills/someone/other-repo/ask-matt/
+.agents/skills/foo
 ```
 
-因此同名 Skill 不在 AKM core library 层构成冲突。最终执行器是否能同时发现、如何映射这些 Skill Root，由 executor adapter/执行器本身处理。
+此时返回 `ActivationNameConflict`，由用户选择为新安装项 rename 或放弃；AKM 不自动覆盖或自动改名。
 
-同时 v0 不建立独立 Registry Package Identity；版本首先属于 GitHub repository Release。来自同一个 repository 的依赖约束会共同选择一个满足条件的 SemVer Release，再从该 Release 对应的 exact repository snapshot 中 discovery 所需 Skill Package。
+这只是**项目 activation name 冲突**，不需要引入全局 Package Identity。
+
+## 仍然拒绝的部分
+
+v0 仍不建立独立 Registry-style `namespace/package` Package Identity，也不因为 activation name 冲突而改变 GitHub source model。
+
+版本首先属于 GitHub repository Release；来自同一个 repository 的依赖约束共同选择一个满足条件的 SemVer Release，并从该 exact repository snapshot 中 discovery 所需 Skill Package。显式 Git source 则绑定同一 repository exact commit。
 
 ## 当前方向
 
-- 不维护全局扁平 Skill name 唯一性约束；
-- 不以 `namespace/package` 作为 v0 Package Identity；
-- GitHub resolver 以 repository Release version + package selector 为核心；
+- Package coordinate 继续使用 `owner/repo/package`；
+- 不建立全局 Package Identity registry；
+- source/resolver/Store 层允许不同 repository 中同名 Skill 独立存在；
+- 单个项目 `.agents/skills/` activation name 必须唯一；
+- 同名 activation conflict 通过用户明确 rename 或 abort 解决；
 - 将来如果增加 Registry source model，再单独设计 Registry package identity 与多版本规则。

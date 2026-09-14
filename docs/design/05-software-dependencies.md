@@ -34,12 +34,12 @@ Skill dependency
 常见可机械探测软件
 → optional akm-package.toml [software]
 → AKM 只读 probe
-→ .akm/dependencies.lock
+→ .agents/.akm/dependencies.lock
 
 复杂软件/硬件/服务/数据/授权条件
 → optional immutable DEPENDENCIES.md
 → Agent 检查、解释
-→ .akm/dependencies.lock
+→ .agents/.akm/dependencies.lock
 ```
 
 没有这些文件时，AKM 不猜测。
@@ -67,10 +67,10 @@ Skill dependency
 
 ## Agent procedure
 
-1. Read `.akm/dependencies.lock` when available.
+1. Read `.agents/.akm/dependencies.lock` when available.
 2. Check unresolved requirements.
 3. Never modify this file.
-4. Record observations in `.akm/dependencies.lock`.
+4. Record observations in `.agents/.akm/dependencies.lock`.
 5. Ask before environment-changing actions.
 ```
 
@@ -99,12 +99,12 @@ AKM 不执行安装、升级、PATH 修改、系统配置、驱动/服务管理�
 
 没有 Manifest 就没有结构化 common software requirement；这不影响 Skill 安装。
 
-## 5. `.akm/dependencies.lock`
+## 5. `.agents/.akm/dependencies.lock`
 
 当前宿主状态统一保存：
 
 ```text
-<project>/.akm/dependencies.lock
+<project>/.agents/.akm/dependencies.lock
 ```
 
 它是可重建的本机状态，默认不提交。
@@ -156,28 +156,27 @@ blocked
 
 如果 Package 根本没有 `DEPENDENCIES.md`，就没有特殊依赖说明需要检查；如果没有 `[software]`，就没有 common probe 输入。
 
-## 7. Project Skill Library 保持纯只读
+## 7. Package Store 与项目激活分离
 
-所有可写状态外置后：
+原始 Package Store 始终 immutable。项目 executor-visible Skill 直接位于：
 
 ```text
-<project>/.akm/skills/<owner>/<repo>/<package>
-    -> <machine-store>/<content-digest>
+<project>/.agents/skills/<activation-name>
 ```
 
-整个 Package Root 保持 immutable，不做 writable overlay。
+未 rename Package 可以直接链接 Store；发生用户批准的 rename 时，项目 activation view 可以 materialize 并只对激活身份做必要改写。AKM 的本机 dependency observation 仍只写 `.agents/.akm/dependencies.lock`，不回写 Package Store。
 
 ## 8. Agent 边界
 
 特殊依赖存在时：
 
 1. Agent 读取 immutable `DEPENDENCIES.md`；
-2. 读取 `.akm/dependencies.lock`；
+2. 读取 `.agents/.akm/dependencies.lock`；
 3. 做只读检查；
 4. 解释缺口；
 5. 给出解决方案；
 6. 涉及安装、升级、登录、下载、配置、服务或其他宿主修改时先取得用户批准；
-7. 完成后重新检查，只更新 `.akm/dependencies.lock`。
+7. 完成后重新检查，只更新 `.agents/.akm/dependencies.lock`。
 
 ## 9. 可复用 Agent 能力仍应成为 Skill dependency
 

@@ -9,30 +9,32 @@
 
 ## 决定
 
-Project state 分为三层：
+Project state 的解析模型仍分三层，但文件统一放在 `.agents/.akm/`：
 
 ```text
-akm.toml
-→ top-level requirement intent
+.agents/.akm/akm.toml
+→ top-level requirement intent + explicit activation renames
 
-akm.lock
+.agents/.akm/akm.lock
 → normalized requirements + exact repository source + exact Package Snapshot graph
 
-.akm/dependencies.lock
+.agents/.akm/dependencies.lock
 → current host dependency observations
 ```
 
+项目 Skill 激活位置与 activation state 后续由 ADR 0008 收敛：executor-visible Skill 直接位于 `.agents/skills/`，`.agents/.akm/activation.lock` 单独记录本机激活状态。
+
 具体规则：
 
-- `akm.toml [skills]` 的字符串值表示 GitHub Release version requirement；Git source 使用 `{ git = "<ref>" }` inline table；
+- `.agents/.akm/akm.toml [skills]` 的字符串值表示 GitHub Release version requirement；Git source 使用 `{ git = "<ref>" }` inline table；用户批准的 Skill rename 记录在同文件 `[renames]`；
 - source binding 始终是 repository-scoped，同一 resolution 的一个 `owner/repo` 只能绑定一个 exact snapshot；不同 Git ref 或 Release/Git 混装返回 `RepositorySourceConflict`；
-- `akm.lock` 只包含 `[[requirement]]`、`[[repository]]`、`[[package]]` 三类 Record；
+- `.agents/.akm/akm.lock` 只包含 `[[requirement]]`、`[[repository]]`、`[[package]]` 三类 Record；
 - source provenance 只写在 Repository Record；Package Record 不重复 source kind/version/commit；
 - dependency edge 只写 `owner/repo/package`，不重复 exact version/commit；
 - Project Lock 不保存 `manifest-digest`、`dependencies-doc-digest` 或 `[[software]]`；Package `content-digest` 已覆盖 immutable payload；
-- `frozen` 比较解析后的 Requirement Set，不 hash `akm.toml` 原始 bytes；
+- `frozen` 比较解析后的 Requirement Set，不 hash `.agents/.akm/akm.toml` 原始 bytes；
 - Lock writer 使用 UTF-8、LF、无注释，并按 coordinate canonical 排序。
 
 ## 结果
 
-Project Manifest 只描述用户意图，Repository Record 只描述 exact source，Package Record 只描述 exact content 与 dependency graph。本机环境状态完全留在 `.akm/dependencies.lock`，三层之间不再重复同一事实。
+Project Manifest 只描述用户意图，Repository Record 只描述 exact source，Package Record 只描述 exact content 与 dependency graph。本机环境状态留在 `.agents/.akm/dependencies.lock`；activation ownership/materialization state 由 ADR 0008 定义的 `.agents/.akm/activation.lock` 单独管理。

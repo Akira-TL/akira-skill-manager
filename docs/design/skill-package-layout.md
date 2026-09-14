@@ -126,7 +126,7 @@ AKM 不静默把一次 Release 安装切换成 branch checkout。
 
 ## 5. Git source 使用机器级 Source Cache
 
-无 Release 的 GitHub Skill 不应该每个项目重复 clone，也不应该把整个 repository 直接当 Project Skill Library。
+无 Release 的 GitHub Skill 不应该每个项目重复 clone，也不应该把整个 repository 直接暴露到项目 `.agents/skills/`。
 
 AKM 维护可丢弃、可重新获取的机器级 Git source cache，例如逻辑布局：
 
@@ -224,22 +224,19 @@ Repository 可以共享 lint/test/release tooling，但 Skill runtime 不能依�
 
 运行时共享必须显式建模，不依赖“刚好来自同一个 checkout”。
 
-## 9. 分层 Project Skill Library
+## 9. 项目 Skill 扁平激活
 
-AKM 项目库保留安装来源层级：
+resolved Package 最终直接激活到：
 
 ```text
-<project>/.akm/skills/
-├── Akira-TL/
-│   └── matt-skills/
-│       ├── ask-matt -> <machine-store>/<digest>
-│       └── tdd      -> <machine-store>/<digest>
-└── someone/
-    └── repo/
-        └── ask-matt -> <machine-store>/<digest>
+<project>/.agents/skills/<activation-name>
 ```
 
-AKM core 不因 leaf Skill 同名而冲突。最终执行器如何递归发现或生成自己的扁平视图，是 executor adapter 的职责。
+默认 `activation-name = SKILL.md.name`。Source coordinate 只保存在 `.agents/.akm/akm.lock`，不进入 executor-visible 目录层级。
+
+不同 repository 可以各自拥有同名 Package，但如果两个 Package 默认都需要占用同一个 `.agents/skills/<name>`，则在 activation preflight 返回 `ActivationNameConflict`。AKM 必须提示用户为新安装项 rename 或放弃；不得自动覆盖或自动改名。
+
+用户批准的 rename 记录在 `.agents/.akm/akm.toml [renames]`。rename 只改变项目 runtime Skill identity，不改变原始 Package Store `content-digest`；完整语义见 [`project-activation.md`](project-activation.md)。
 
 ## 10. Package 名称
 

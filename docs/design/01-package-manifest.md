@@ -195,7 +195,7 @@ AKM 只负责基础发现与状态记录，不负责安装、升级、配置或�
 
 `DEPENDENCIES.md` 同样是可选增强文件，不是 Package 准入条件。
 
-存在时它属于不可变 Package payload，只写特殊依赖、检查方法与处理边界。当前宿主状态写入 `.akm/dependencies.lock`，永不回写 Package 文件。
+存在时它属于不可变 Package payload，只写特殊依赖、检查方法与处理边界。当前宿主状态写入 `.agents/.akm/dependencies.lock`，永不回写 Package 文件。
 
 ## 10. 校验规则
 

@@ -4,24 +4,26 @@
 
 对应 Wayfinder：#6 `Define Project Manifest and Lock semantics`
 
-## 1. 三层职责
+## 1. Project state 布局
 
-AKM 项目侧有三个不同职责的文件：
+AKM 项目侧有四个职责分离的状态文件，其中 `akm.lock` 内部仍保持 `requirement -> repository -> package` 三层解析模型：
 
 ```text
-akm.toml                   # 用户声明：我想要什么
-akm.lock                   # 可提交：最终解析成什么
-.akm/dependencies.lock     # 本机状态：当前环境是否满足依赖
+.agents/.akm/akm.toml           # 用户声明：我想要什么
+.agents/.akm/akm.lock           # 可提交：最终解析成什么
+.agents/.akm/activation.lock    # 本机状态：当前扁平 Skill 激活 ownership
+.agents/.akm/dependencies.lock  # 本机状态：当前环境是否满足依赖
 ```
 
 固定边界：
 
-- `akm.toml` 只声明顶层 Skill/Repository requirement；
-- `akm.lock` 保存 requirement 的规范化语义、exact repository source、Package Snapshot 身份和 resolved dependency edges；
-- `.akm/dependencies.lock` 保存当前机器上的软件/特殊依赖观察结果；
+- `.agents/.akm/akm.toml` 声明顶层 Skill/Repository requirement，并保存用户明确批准的 `[renames]` activation rename；
+- `.agents/.akm/akm.lock` 保存 requirement 的规范化语义、exact repository source、Package Snapshot 身份和 resolved dependency edges；
+- `.agents/.akm/activation.lock` 保存当前机器上 AKM-managed `.agents/skills/` entry 的 ownership/materialization state；
+- `.agents/.akm/dependencies.lock` 保存当前机器上的软件/特殊依赖观察结果；
 - Package 自身的 `akm-package.toml` / `DEPENDENCIES.md` 属于 immutable Package Snapshot，不复制到 Project Lock。
 
-## 2. `akm.toml`
+## 2. `.agents/.akm/akm.toml`
 
 最小格式：
 
@@ -45,6 +47,15 @@ Git source 使用 inline table，必须显式：
 ```
 
 不再使用 Git source 的 `"*"` version placeholder 和独立 `[sources]` table。
+
+扁平激活发生同名冲突且用户选择 rename 时，AKM 还会保存 portable rename intent：
+
+```toml
+[renames]
+"someone/other-repo/ask-matt" = "ask-matt-other"
+```
+
+`[renames]` 不改变 Package coordinate/source/content identity，只决定该 Package 在 `.agents/skills/` 中的项目本地 activation name。
 
 ## 3. Repository-scoped source binding
 
@@ -170,7 +181,7 @@ dependencies-doc-digest
 [[software]]
 ```
 
-`akm-package.toml` / `DEPENDENCIES.md` 已包含在 Package Snapshot 中，任意 byte 变化都会改变 Package `content-digest`。common software requirement 可从 immutable Package Snapshot 读取；当前机器 observation 属于 `.akm/dependencies.lock`。
+`akm-package.toml` / `DEPENDENCIES.md` 已包含在 Package Snapshot 中，任意 byte 变化都会改变 Package `content-digest`。common software requirement 可从 immutable Package Snapshot 读取；当前机器 observation 属于 `.agents/.akm/dependencies.lock`。
 
 因此 `content-digest` 是 Package payload 的唯一项目级完整性身份。
 
@@ -220,7 +231,7 @@ Canonical ordering 用于稳定 Git diff 和 deterministic generation；Lock 语
 
 ## 7. `frozen`
 
-`frozen` 先把当前 `akm.toml` 解析成 canonical Requirement Set，再与 Lock 中 `[[requirement]]` 比较。
+`frozen` 先把当前 `.agents/.akm/akm.toml` 的 `[skills]` 解析成 canonical Requirement Set，再与 Lock 中 `[[requirement]]` 比较。`[renames]` 属于 activation intent，不参与 repository/package resolution；它由 activation reconciliation 单独校验。
 
 语义不同返回：
 
@@ -237,31 +248,41 @@ FrozenRequirementMismatch
 普通 `sync`：
 
 ```text
-parse akm.toml
+parse .agents/.akm/akm.toml
   -> compare previous Requirement Set
   -> reuse still-valid previous repository resolution when possible
   -> resolve changed/new requirements
   -> build exact repository graph
   -> discover/resolve Packages
   -> materialize/verify Package Snapshots
-  -> rebuild Project Skill Library
-  -> atomically rewrite canonical akm.lock
+  -> preflight flat activation names + apply explicit [renames]
+  -> reconcile .agents/skills and .agents/.akm/activation.lock
+  -> atomically rewrite canonical .agents/.akm/akm.lock
 ```
 
 Release retargeting仍按已有规则处理：previous Lock 中同一个 Release tag 的 exact commit 若与当前 GitHub 解析不同，普通 `sync` 返回 `ReleaseRetargeted`，不静默漂移。
 
 显式 `update` 才允许主动重新选择满足 requirement 的较新 Release 或接受用户明确要求的新 source snapshot。
 
-## 9. Project Skill Library
+## 9. Project Skill Activation
 
-Lock 最终激活：
+Resolved Package 直接扁平激活到 executor-visible：
 
 ```text
-<project>/.akm/skills/<owner>/<repo>/<package>
-    -> <machine-store>/sha256/<content-digest-hex>
+<project>/.agents/skills/<activation-name>
 ```
 
-Package leaf 直接链接 immutable Package Store entry；AKM 不在项目内复制或修改 Package payload。
+默认：
+
+```text
+activation-name = SKILL.md.name
+```
+
+如果目标 name 已被另一个 Package 或未知既有 Skill 占用，AKM 在写入前返回 `ActivationNameConflict`，提示用户选择为**新安装项** rename 或放弃本次操作；不得自动覆盖。用户批准的 rename 写入 `.agents/.akm/akm.toml [renames]`。
+
+未 rename Package 可以直接链接 immutable Package Store entry；rename Package 必须生成合法的项目本地 activation view，使目录 basename 与其中 `SKILL.md.name` 同时等于新的 activation name。原始 Store entry/content-digest 不改变。
+
+当前 AKM-managed activation ownership/materialization state 单独写入 `.agents/.akm/activation.lock`。完整语义见 [`project-activation.md`](project-activation.md)。
 
 ## 10. 不属于 `akm.lock` 的内容
 
@@ -274,6 +295,6 @@ Package leaf 直接链接 immutable Package Store entry；AKM 不在项目内复
 - `DEPENDENCIES.md` 单独 digest；
 - 当前宿主软件版本/路径/状态；
 - Agent 对特殊依赖的检查 note；
-- executor-specific activation/discovery view。
+- 当前 `.agents/skills/` materialization/ownership state。
 
-这些分别属于 source cache、Package Snapshot、`.akm/dependencies.lock` 或 executor adapter。
+这些分别属于 source cache、Package Snapshot、`.agents/.akm/dependencies.lock` 或 `.agents/.akm/activation.lock`。

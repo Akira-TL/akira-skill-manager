@@ -1,0 +1,32 @@
+lock-version = 1
+
+[[skill]]
+activation-name = "ask-matt"
+coordinate = "Akira-TL/matt-skills/ask-matt"
+content-digest = "sha256:3333333333333333333333333333333333333333333333333333333333333333"
+mode = "store-link"
+
+[[skill]]
+activation-name = "browser-access"
+coordinate = "Akira-TL/skills/browser-access"
+content-digest = "sha256:9999999999999999999999999999999999999999999999999999999999999999"
+mode = "store-link"
+
+[[skill]]
+activation-name = "implement"
+coordinate = "Akira-TL/matt-skills/implement"
+content-digest = "sha256:6666666666666666666666666666666666666666666666666666666666666666"
+mode = "store-link"
+
+[[skill]]
+activation-name = "special-skill-local"
+coordinate = "example/special-skills/special-skill"
+content-digest = "sha256:7777777777777777777777777777777777777777777777777777777777777777"
+mode = "renamed-view"
+source-name = "special-skill"
+
+[[skill]]
+activation-name = "wayfinder"
+coordinate = "Akira-TL/matt-skills/wayfinder"
+content-digest = "sha256:8888888888888888888888888888888888888888888888888888888888888888"
+mode = "store-link"

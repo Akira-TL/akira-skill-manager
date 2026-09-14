@@ -19,9 +19,11 @@ dependency resolution
     ↓
 Package Store
     ↓
-Project Skill Library
+flat Project Skill Activation -> .agents/skills
     ↓
-optional dependency probes -> .akm/dependencies.lock
+activation state -> .agents/.akm/activation.lock
+    ↓
+optional dependency probes -> .agents/.akm/dependencies.lock
 ```
 
 ## `metadata`
@@ -30,8 +32,8 @@ optional dependency probes -> .akm/dependencies.lock
 
 - 解析 `SKILL.md` frontmatter；
 - 解析可选 `akm-package.toml`；
-- 解析 `akm.toml`；
-- 读写 `akm.lock`；
+- 解析 `.agents/.akm/akm.toml`；
+- 读写 `.agents/.akm/akm.lock`；
 - 解析 GitHub install coordinate；
 - 解析 Release version requirement。
 
@@ -114,7 +116,7 @@ release repository snapshots to obtain
 git cache entries to create/fetch
 package roots to snapshot
 store entries to reuse
-project library links to add/remove
+flat .agents/skills activation entries to add/remove/rename
 common software probes to run
 special dependency docs requiring Agent inspection
 ```
@@ -163,14 +165,23 @@ Store key 不含 GitHub owner/repo、Release、commit 或 package-root；这些 
 
 ## `activation`
 
-根据 Lock 构建：
+根据 resolved Packages 与 `.agents/.akm/akm.toml [renames]` 构建扁平 executor-visible Skill 目录：
 
 ```text
-.akm/skills/<owner>/<repo>/<skill-name>
-    -> <machine-store>/<content-digest>
+.agents/skills/<activation-name>
 ```
 
-executor adapter 在其后负责最终 Skill discovery 适配。
+职责：
+
+- 默认 `activation-name = SKILL.md.name`；
+- 在任何写入前做完整 activation-name collision preflight；
+- 未 rename Package 可直接链接 immutable Store entry；
+- rename Package materialize 项目本地 view，并同步修改顶层 `SKILL.md.name`；
+- 未经用户明确 rename 时，冲突返回 `ActivationNameConflict`；
+- 不覆盖/删除未由 AKM activation state 管理的既有 Skill；
+- 维护 `.agents/.akm/activation.lock`。
+
+v0 的 executor discovery 面直接就是 `.agents/skills/`，不再建立 AKM 私有分层 Skill Library 或额外 executor adapter view。
 
 ## `dependency_checks`
 
@@ -178,7 +189,7 @@ executor adapter 在其后负责最终 Skill discovery 适配。
 
 - Manifest `[software]` 的 common probes；
 - `DEPENDENCIES.md` digest / Agent inspection state；
-- `.akm/dependencies.lock` 读写与失效。
+- `.agents/.akm/dependencies.lock` 读写与失效。
 
 不提供 install/upgrade/remove/configure。
 
@@ -205,7 +216,7 @@ v0 不建立：
 - 必填 `akm-package.toml`；
 - 抽象 Registry Package Identity 作为 GitHub 前置层；
 - Multi-Skill Package；
-- 扁平 global Skill name registry；
+- 全局 Skill name registry；
 - Software Provider 自动安装体系；
 - Package 自定义系统安装脚本；
 - repository runtime shared directory；

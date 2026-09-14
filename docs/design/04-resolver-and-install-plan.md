@@ -76,7 +76,7 @@ Git source 不直接把 mutable checkout 暴露给项目。
 - discovery 可以直接读 Git tree，真正需要 snapshot 时再临时 materialize；
 - cache 可以删除并重新获取，不是项目状态真相。
 
-Source Cache 不进入 `akm.lock` 的本机绝对路径。Lock 只保存可重建 provenance：repository、requested ref、exact commit、package-root、content digest。
+Source Cache 不进入 `.agents/.akm/akm.lock` 的本机绝对路径。Lock 只保存可重建 provenance：repository、requested ref、exact commit、package-root、content digest。
 
 ## 5. Package discovery
 
@@ -193,24 +193,24 @@ A -> B -> C -> A
 
 发现时报告完整 cycle path。
 
-## 9. 同名 Skill
+## 9. 同名 Skill 与扁平 activation
 
-Project Skill Library 保留：
-
-```text
-<owner>/<repo>/<package>
-```
-
-因此：
+Package Resolver 仍允许不同 source 存在同名 Package：
 
 ```text
 A/repo/foo
 B/repo/foo
 ```
 
-在 AKM core 层可以共存。
+它们的 Package coordinate、source provenance 与 Store content identity 都可以独立共存。
 
-执行器若需要扁平 namespace，由 executor adapter 解决冲突，不属于 Package Resolver 错误。
+但项目 executor-visible 安装面固定为扁平：
+
+```text
+.agents/skills/<activation-name>
+```
+
+因此两个 Package 若默认都要激活为 `foo`，会在 activation plan 阶段产生 `ActivationNameConflict`。这不是 Package resolution 冲突，而是项目本地 runtime name 冲突；必须由用户为新安装项明确 rename，或放弃本次操作。
 
 ## 10. Repository-wide install
 
@@ -249,6 +249,10 @@ packages:
   owner/repo/package
   package-root
   content digest
+
+activation:
+  default name = SKILL.md.name
+  explicit project rename from .agents/.akm/akm.toml [renames] when present
 
 edges:
   manifest-declared exact dependency edges（只保存 owner/repo/package）
@@ -289,18 +293,19 @@ warnings:
 
 ### Activate
 
-按：
+先对完整 resolved graph 做扁平 activation preflight：
 
 ```text
-.akm/skills/<owner>/<repo>/<package>
-    -> <machine-store>/<content-digest>
+.agents/skills/<activation-name>
 ```
 
-建立只读项目库。
+默认 activation name 等于 `SKILL.md.name`。如果计划内两个 Package 或已有未知 Skill 占用同名路径，返回 `ActivationNameConflict`，交互模式让用户为新安装项 rename 或放弃；非交互模式没有预配置 rename 时直接失败。
+
+用户批准的 rename 写入 `.agents/.akm/akm.toml [renames]`。未 rename Package 可直接链接 Store；rename Package materialize 项目本地合法 Skill view，并保持原始 Store `content-digest` 不变。当前 managed activation state 写入 `.agents/.akm/activation.lock`。
 
 ### Dependency check
 
-只有存在 `[software]` 才运行对应 common probes；只有存在 `DEPENDENCIES.md` 才提示 Agent 存在特殊依赖说明。检查结果写 `.akm/dependencies.lock`。
+只有存在 `[software]` 才运行对应 common probes；只有存在 `DEPENDENCIES.md` 才提示 Agent 存在特殊依赖说明。检查结果写 `.agents/.akm/dependencies.lock`。
 
 ## 13. 执行顺序
 
@@ -316,15 +321,17 @@ parse target/project manifest
   -> materialize canonical Package Snapshots
   -> compute/verify AKM-PACKAGE-V1 content-digest
   -> reuse or atomically put content-addressed immutable Store entry
-  -> rebuild Project Skill Library
+  -> preflight flat .agents/skills activation names
+  -> resolve explicit rename/abort decisions before project writes
+  -> reconcile .agents/skills + .agents/.akm/activation.lock
   -> run common probes
-  -> update .akm/dependencies.lock
-  -> write akm.lock atomically
+  -> update .agents/.akm/dependencies.lock
+  -> write .agents/.akm/akm.lock atomically
 ```
 
 ## 14. Frozen / offline
 
-`frozen`：先比较当前 `akm.toml` 解析后的 canonical Requirement Set 与 Lock 中 `[[requirement]]`；不一致返回 `FrozenRequirementMismatch`。一致时只接受 Lock 的 exact source snapshot、package-root、content digest 和 graph，不重新选择。
+`frozen`：先比较当前 `.agents/.akm/akm.toml [skills]` 解析后的 canonical Requirement Set 与 Lock 中 `[[requirement]]`；不一致返回 `FrozenRequirementMismatch`。一致时只接受 Lock 的 exact source snapshot、package-root、content digest 和 graph，不重新选择；`[renames]` 由 activation reconciliation 单独应用。
 
 `offline`：不访问 GitHub、不 fetch Git；只能使用本地 cache/Store 与 Lock。
 
@@ -332,7 +339,7 @@ parse target/project manifest
 
 ## 15. remove / orphan / why
 
-删除顶层 target 后重新计算 manifest-declared dependency closure。不可达 Package 从 Project Skill Library 移除；Store 进入独立 GC 候选。
+删除顶层 target 后重新计算 manifest-declared dependency closure。不可达 Package 对应的 AKM-managed `.agents/skills/<activation-name>` 按 `.agents/.akm/activation.lock` 安全移除；Store 进入独立 GC 候选。
 
 `why owner/repo/package` 从 Lock graph 反向构造路径。
 
@@ -356,5 +363,8 @@ parse target/project manifest
 - `PackagePathCollision`；
 - `PackageContentDigestMismatch`；
 - `CorruptStoreEntry`；
+- `ActivationNameConflict`；
+- `InvalidActivationName`；
+- `ModifiedManagedActivation`；
 - `UnsafeSourceSnapshot`；
 - `OfflineSourceUnavailable`。
