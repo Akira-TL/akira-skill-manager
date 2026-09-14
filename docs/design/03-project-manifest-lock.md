@@ -6,24 +6,24 @@
 
 ## 1. Project state 布局
 
-AKM 项目侧有四个职责分离的状态文件，其中 `akm.lock` 内部仍保持 `requirement -> repository -> package` 三层解析模型：
+Skiloom 项目侧有四个职责分离的状态文件，其中 `skiloom.lock` 内部仍保持 `requirement -> repository -> package` 三层解析模型：
 
 ```text
-.agents/.akm/akm.toml           # 用户声明：我想要什么
-.agents/.akm/akm.lock           # 可提交：最终解析成什么
-.agents/.akm/activation.lock    # 本机状态：当前扁平 Skill 激活 ownership
-.agents/.akm/dependencies.lock  # 本机状态：当前环境是否满足依赖
+.agents/.skiloom/skiloom.toml           # 用户声明：我想要什么
+.agents/.skiloom/skiloom.lock           # 可提交：最终解析成什么
+.agents/.skiloom/activation.lock    # 本机状态：当前扁平 Skill 激活 ownership
+.agents/.skiloom/dependencies.lock  # 本机状态：当前环境是否满足依赖
 ```
 
 固定边界：
 
-- `.agents/.akm/akm.toml` 声明顶层 Skill/Repository requirement，并保存用户明确批准的 `[renames]` activation rename；
-- `.agents/.akm/akm.lock` 保存 requirement 的规范化语义、exact repository source、Package Snapshot 身份和 resolved dependency edges；
-- `.agents/.akm/activation.lock` 保存当前机器上 AKM-managed `.agents/skills/` entry 的 ownership/materialization state；
-- `.agents/.akm/dependencies.lock` 保存当前机器上的软件/特殊依赖观察结果；
-- Package 自身的 `akm-package.toml` / `DEPENDENCIES.md` 属于 immutable Package Snapshot，不复制到 Project Lock。
+- `.agents/.skiloom/skiloom.toml` 声明顶层 Skill/Repository requirement，并保存用户明确批准的 `[renames]` activation rename；
+- `.agents/.skiloom/skiloom.lock` 保存 requirement 的规范化语义、exact repository source、Package Snapshot 身份和 resolved dependency edges；
+- `.agents/.skiloom/activation.lock` 保存当前机器上 Skiloom-managed `.agents/skills/` entry 的 ownership/materialization state；
+- `.agents/.skiloom/dependencies.lock` 保存当前机器上的软件/特殊依赖观察结果；
+- Package 自身的 `skiloom-package.toml` / `DEPENDENCIES.md` 属于 immutable Package Snapshot，不复制到 Project Lock。
 
-## 2. `.agents/.akm/akm.toml`
+## 2. `.agents/.skiloom/skiloom.toml`
 
 最小格式：
 
@@ -48,7 +48,7 @@ Git source 使用 inline table，必须显式：
 
 不再使用 Git source 的 `"*"` version placeholder 和独立 `[sources]` table。
 
-扁平激活发生同名冲突且用户选择 rename 时，AKM 还会保存 portable rename intent：
+扁平激活发生同名冲突且用户选择 rename 时，Skiloom 还会保存 portable rename intent：
 
 ```toml
 [renames]
@@ -84,7 +84,7 @@ RepositorySourceConflict
 
 v0 中一个 project resolution 的每个 repository 只允许一个 exact source snapshot。
 
-## 4. `akm.lock` 三类 Record
+## 4. `skiloom.lock` 三类 Record
 
 Canonical Lock 只使用：
 
@@ -125,7 +125,7 @@ source-kind = "git"
 ref = "main"
 ```
 
-Requirement Record 保存 `akm.toml` 解析后的语义，不保存原始 TOML bytes。Release `version` 使用 [`resolver-conformance.md`](resolver-conformance.md) 定义的 canonical Release Version Requirement；因此只改注释、空白、table ordering、comparator ordering 或 Cargo-default/caret 等 canonical-equivalent 写法不会让 Lock 失效。v1 不要求证明任意两个不同 range 表达式的集合代数等价。
+Requirement Record 保存 `skiloom.toml` 解析后的语义，不保存原始 TOML bytes。Release `version` 使用 [`resolver-conformance.md`](resolver-conformance.md) 定义的 canonical Release Version Requirement；因此只改注释、空白、table ordering、comparator ordering 或 Cargo-default/caret 等 canonical-equivalent 写法不会让 Lock 失效。v1 不要求证明任意两个不同 range 表达式的集合代数等价。
 
 ### 4.2 Repository Record
 
@@ -165,7 +165,7 @@ dependencies = [
 ]
 ```
 
-Package Record 只保存完整 Package coordinate、实际 repository-relative `package-root`、`AKM-PACKAGE-V1` `content-digest` 和已解析的 exact Skill dependency edges。
+Package Record 只保存完整 Package coordinate、实际 repository-relative `package-root`、`SKILOOM-PACKAGE-V1` `content-digest` 和已解析的 exact Skill dependency edges。
 
 不再保存 `name`：它已经是 coordinate 最后一段，并且 discovery 已验证它来自 `SKILL.md.name`。
 
@@ -173,7 +173,7 @@ dependency edge 不带 `@version` / commit；目标 Package 所属 `[[repository
 
 ## 5. Project Lock 不复制 Package 内部状态
 
-`akm.lock` 不保存：
+`skiloom.lock` 不保存：
 
 ```text
 manifest-digest
@@ -181,13 +181,13 @@ dependencies-doc-digest
 [[software]]
 ```
 
-`akm-package.toml` / `DEPENDENCIES.md` 已包含在 Package Snapshot 中，任意 byte 变化都会改变 Package `content-digest`。common software requirement 可从 immutable Package Snapshot 读取；当前机器 observation 属于 `.agents/.akm/dependencies.lock`。
+`skiloom-package.toml` / `DEPENDENCIES.md` 已包含在 Package Snapshot 中，任意 byte 变化都会改变 Package `content-digest`。common software requirement 可从 immutable Package Snapshot 读取；当前机器 observation 属于 `.agents/.skiloom/dependencies.lock`。
 
 因此 `content-digest` 是 Package payload 的唯一项目级完整性身份。
 
 ## 6. Canonical serialization
 
-AKM 自己生成 `akm.lock`；v0 writer 固定：
+Skiloom 自己生成 `skiloom.lock`；v0 writer 固定：
 
 1. UTF-8；
 2. LF line endings；
@@ -234,11 +234,11 @@ Canonical ordering 用于稳定 Git diff 和 deterministic generation；所有 c
 Project Manifest 与 Lock 不再只是“输入文件 / resolver cache”的关系，而是两个不同状态：
 
 ```text
-.agents/.akm/akm.toml [skills]
+.agents/.skiloom/skiloom.toml [skills]
 = Project Intent
 = 项目允许什么
 
-.agents/.akm/akm.lock
+.agents/.skiloom/skiloom.lock
 = Confirmed Resolution
 = 项目已经明确接受什么 exact result
 ```
@@ -258,7 +258,7 @@ parse Project Intent
   -> match: use exact locked repositories/packages/edges
   -> materialize/verify Store entries
   -> preflight flat activation names + apply explicit [renames]
-  -> reconcile .agents/skills and .agents/.akm/activation.lock
+  -> reconcile .agents/skills and .agents/.skiloom/activation.lock
   -> run dependency observations
 ```
 
@@ -274,7 +274,7 @@ parse Project Intent
 
 Frozen mode 要求已有且完全匹配的 Confirmed Resolution：Lock 缺失、Requirement Set 不一致或 locked graph 无法恢复都直接失败；它永不创建或更新 Lock。`[renames]` 仍属于 activation intent，由 activation reconciliation 单独处理。
 
-`akm.toml` 注释、空白或等价 TOML 排版不会造成 Requirement Set 差异。
+`skiloom.toml` 注释、空白或等价 TOML 排版不会造成 Requirement Set 差异。
 
 ## 9. Project Skill Activation
 
@@ -290,23 +290,23 @@ Resolved Package 直接扁平激活到 executor-visible：
 activation-name = SKILL.md.name
 ```
 
-如果目标 name 已被另一个 Package 或未知既有 Skill 占用，AKM 在写入前返回 `ActivationNameConflict`，提示用户选择为**新安装项** rename 或放弃本次操作；不得自动覆盖。用户批准的 rename 写入 `.agents/.akm/akm.toml [renames]`。
+如果目标 name 已被另一个 Package 或未知既有 Skill 占用，Skiloom 在写入前返回 `ActivationNameConflict`，提示用户选择为**新安装项** rename 或放弃本次操作；不得自动覆盖。用户批准的 rename 写入 `.agents/.skiloom/skiloom.toml [renames]`。
 
 未 rename Package 可以直接链接 immutable Package Store entry；rename Package 必须生成合法的项目本地 activation view，使目录 basename 与其中 `SKILL.md.name` 同时等于新的 activation name。原始 Store entry/content-digest 不改变。
 
-当前 AKM-managed activation ownership/materialization state 单独写入 `.agents/.akm/activation.lock`。完整语义见 [`project-activation.md`](project-activation.md)。
+当前 Skiloom-managed activation ownership/materialization state 单独写入 `.agents/.skiloom/activation.lock`。完整语义见 [`project-activation.md`](project-activation.md)。
 
-## 10. 不属于 `akm.lock` 的内容
+## 10. 不属于 `skiloom.lock` 的内容
 
 以下内容明确不属于 Project Lock：
 
 - Git Source Cache 机器绝对路径；
 - Release source archive bytes/digest；
 - Package 内文件逐项 digest；
-- `akm-package.toml` 单独 digest；
+- `skiloom-package.toml` 单独 digest；
 - `DEPENDENCIES.md` 单独 digest；
 - 当前宿主软件版本/路径/状态；
 - Agent 对特殊依赖的检查 note；
 - 当前 `.agents/skills/` materialization/ownership state。
 
-这些分别属于 source cache、Package Snapshot、`.agents/.akm/dependencies.lock` 或 `.agents/.akm/activation.lock`。
+这些分别属于 source cache、Package Snapshot、`.agents/.skiloom/dependencies.lock` 或 `.agents/.skiloom/activation.lock`。

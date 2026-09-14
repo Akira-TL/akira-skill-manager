@@ -4,18 +4,18 @@
 
 对应 Wayfinder：#8 `Define the external software dependency model`
 
-本文件收敛 `.agents/.akm/dependencies.lock` 的本机状态职责。Package admission、Skill dependency resolution、immutable `DEPENDENCIES.md` 与 `akm-package.toml [software]` 的来源边界保持不变。对应 ADR：[`0010-dependency-runtime-state.md`](../adr/0010-dependency-runtime-state.md)。
+本文件收敛 `.agents/.skiloom/dependencies.lock` 的本机状态职责。Package admission、Skill dependency resolution、immutable `DEPENDENCIES.md` 与 `skiloom-package.toml [software]` 的来源边界保持不变。对应 ADR：[`0010-dependency-runtime-state.md`](../adr/0010-dependency-runtime-state.md)。
 
 ## 1. `dependencies.lock` 只保存观察结果
 
 Package requirement 的 source of truth 已经存在于 immutable Package Snapshot：
 
 ```text
-akm-package.toml [software]
+skiloom-package.toml [software]
 DEPENDENCIES.md
 ```
 
-因此 `.agents/.akm/dependencies.lock` 不复制 requirement 文本或单文件 digest，只保存“当前这台机器观察到了什么”。
+因此 `.agents/.skiloom/dependencies.lock` 不复制 requirement 文本或单文件 digest，只保存“当前这台机器观察到了什么”。
 
 Canonical schema：
 
@@ -23,7 +23,7 @@ Canonical schema：
 lock-version = 1
 
 [[package]]
-coordinate = "Akira-TL/matt-skills/ask-matt"
+coordinate = "akira-tl/matt-skills/ask-matt"
 content-digest = "sha256:3333333333333333333333333333333333333333333333333333333333333333"
 
 [[package.software]]
@@ -52,12 +52,12 @@ manifest-digest
 software requirement copy
 ```
 
-原因：`akm-package.toml`、`DEPENDENCIES.md` 和它们的 requirement 都属于 Package Snapshot。任意 byte 变化都会改变 Package `content-digest`。
+原因：`skiloom-package.toml`、`DEPENDENCIES.md` 和它们的 requirement 都属于 Package Snapshot。任意 byte 变化都会改变 Package `content-digest`。
 
 因此：
 
 ```text
-state.content-digest == current akm.lock package content-digest
+state.content-digest == current skiloom.lock package content-digest
 ```
 
 是该 Package dependency observations 仍可复用的最低前提。
@@ -133,7 +133,7 @@ install command
 
 ## 6. Special observation 由 Agent 管理
 
-`DEPENDENCIES.md` 是 Agent-readable natural-language contract，AKM core 不把它强行解析成结构化 requirement schema。
+`DEPENDENCIES.md` 是 Agent-readable natural-language contract，Skiloom Core 不把它强行解析成结构化 requirement schema。
 
 Agent 在完成只读检查后可以写：
 
@@ -154,7 +154,7 @@ note = "Target private repository is readable with the current identity."
 
 ## 7. Writer ownership 与 canonical output
 
-AKM core 负责：
+Skiloom Core 负责：
 
 - Package state 的 `coordinate` / `content-digest`；
 - `[[package.software]]` probe records；
@@ -178,7 +178,7 @@ Package 若当前既没有 `[software]`，也没有 special observations，可�
 
 ## 8. 可删除、可重建边界
 
-`.agents/.akm/dependencies.lock` 不是 reproducible resolution state，也不是授权日志。
+`.agents/.skiloom/dependencies.lock` 不是 reproducible resolution state，也不是授权日志。
 
 删除它的结果只是：
 

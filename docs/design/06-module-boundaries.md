@@ -21,9 +21,9 @@ Package Store
     ↓
 flat Project Skill Activation -> .agents/skills
     ↓
-activation state -> .agents/.akm/activation.lock
+activation state -> .agents/.skiloom/activation.lock
     ↓
-optional dependency probes -> .agents/.akm/dependencies.lock
+optional dependency probes -> .agents/.skiloom/dependencies.lock
 ```
 
 ## `metadata`
@@ -31,9 +31,9 @@ optional dependency probes -> .agents/.akm/dependencies.lock
 职责：
 
 - 解析 `SKILL.md` frontmatter；
-- 解析可选 `akm-package.toml`；
-- 解析 `.agents/.akm/akm.toml`；
-- 读写 `.agents/.akm/akm.lock`；
+- 解析可选 `skiloom-package.toml`；
+- 解析 `.agents/.skiloom/skiloom.toml`；
+- 读写 `.agents/.skiloom/skiloom.lock`；
 - 解析 GitHub install coordinate；
 - 解析 Release version requirement。
 
@@ -140,7 +140,7 @@ snapshot_and_verify(source_root, discovered_nested_roots) -> VerifiedPackageSnap
 - `SKILL.md` 校验；
 - optional Manifest 校验；
 - optional `DEPENDENCIES.md` digest；
-- 按 `AKM-PACKAGE-V1` 计算 canonical `content-digest`。
+- 按 `SKILOOM-PACKAGE-V1` 计算 canonical `content-digest`。
 
 完整算法见 [`package-snapshot-digest.md`](package-snapshot-digest.md)。
 
@@ -165,7 +165,7 @@ Store key 不含 GitHub owner/repo、Release、commit 或 package-root；这些 
 
 ## `activation`
 
-根据 resolved Packages 与 `.agents/.akm/akm.toml [renames]` 构建扁平 executor-visible Skill 目录：
+根据 resolved Packages 与 `.agents/.skiloom/skiloom.toml [renames]` 构建扁平 executor-visible Skill 目录：
 
 ```text
 .agents/skills/<activation-name>
@@ -177,12 +177,12 @@ Store key 不含 GitHub owner/repo、Release、commit 或 package-root；这些 
 - 在任何写入前做完整 activation-name collision preflight；
 - POSIX 未 rename 优先 `symlink`、Windows 未 rename 优先 `junction`，失败时 fallback `copy`；
 - rename Package 一律 `copy`，并同步修改顶层 `SKILL.md.name`；
-- `.agents/.akm/activation.lock` 每项只保存 activation name、coordinate、content digest 与 `symlink|junction|copy` mode；
+- `.agents/.skiloom/activation.lock` 每项只保存 activation name、coordinate、content digest 与 `symlink|junction|copy` mode；
 - missing managed activation 可自动重建；modified/replaced managed activation fail closed，并只允许显式 `restore` / `detach` / `abort`；
 - 未经用户明确 rename 时，冲突返回 `ActivationNameConflict`；
-- 不覆盖/删除未由 AKM activation state 管理的既有 Skill。
+- 不覆盖/删除未由 Skiloom activation state 管理的既有 Skill。
 
-v0 的 executor discovery 面直接就是 `.agents/skills/`，不再建立 AKM 私有分层 Skill Library 或额外 executor adapter view。
+v0 的 executor discovery 面直接就是 `.agents/skills/`，不再建立 Skiloom 私有分层 Skill Library 或额外 executor adapter view。
 
 ## `dependency_checks`
 
@@ -191,7 +191,7 @@ v0 的 executor discovery 面直接就是 `.agents/skills/`，不再建立 AKM �
 - Manifest `[software]` 的 common probes；
 - 每次 `sync` / `doctor` 对当前 resolved graph 重新执行便宜的只读 software probe；
 - Package `content-digest` 作为 dependency state 唯一 freshness anchor；
-- `.agents/.akm/dependencies.lock` 中 software observations 的读写、orphan/stale 清理；
+- `.agents/.skiloom/dependencies.lock` 中 software observations 的读写、orphan/stale 清理；
 - 与 Agent 管理的 `[[package.special]]` observations 做保留式原子合并。
 
 不解析 `DEPENDENCIES.md` 为结构化 requirement，不提供 install/upgrade/remove/configure。
@@ -215,7 +215,7 @@ cache_gc()
 
 v0 不建立：
 
-- 必填 `akm-package.toml`；
+- 必填 `skiloom-package.toml`；
 - 抽象 Registry Package Identity 作为 GitHub 前置层；
 - Multi-Skill Package；
 - 全局 Skill name registry；

@@ -6,7 +6,7 @@
 
 对应 Core 边界：[`skiloom-core-conformance.md`](skiloom-core-conformance.md)、[ADR 0012](../adr/0012-skiloom-core-conformance-boundary.md)
 
-> 当前公开文件名仍暂写作 `akm-package.toml`。产品/CLI/协议命名空间存在直接外部碰撞，已由 #14 单独决策；本文件固定 Manifest 的结构与语义 ownership，最终公开文件名随命名决策一次性迁移。
+> 当前公开文件名仍暂写作 `skiloom-package.toml`。产品/CLI/协议命名空间存在直接外部碰撞，已由 #14 单独决策；本文件固定 Manifest 的结构与语义 ownership，最终公开文件名随命名决策一次性迁移。
 
 ## 1. 定位
 

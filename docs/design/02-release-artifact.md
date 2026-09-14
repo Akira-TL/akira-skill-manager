@@ -4,7 +4,7 @@
 
 ## 1. 目标
 
-AKM v0 使用 GitHub Release 作为稳定版本选择入口，但 **不定义、也不要求任何 AKM 专用 per-Skill Release Asset**。
+Skiloom v0 使用 GitHub Release 作为稳定版本选择入口，但 **不定义、也不要求任何 Skiloom 专用 per-Skill Release Asset**。
 
 Release 只做两件事：
 
@@ -25,7 +25,7 @@ Git source
 
 ## 2. Release version 只接受 SemVer
 
-AKM Release resolver v0 只把下列 GitHub Release tag 识别为 Release version：
+Skiloom Release resolver v0 只把下列 GitHub Release tag 识别为 Release version：
 
 ```text
 1.4.0
@@ -67,26 +67,26 @@ owner/repo/package@1.4.0
   -> record actual GitHub tag, e.g. v1.4.0
   -> resolve tag to exact commit
   -> obtain repository source snapshot for that commit
-  -> apply akm-repo.toml discovery policy if present
+  -> apply skiloom-repo.toml discovery policy if present
   -> discover SKILL.md roots
   -> select requested package(s)
 ```
 
-AKM v0 不查找、下载或定义：
+Skiloom v0 不查找、下载或定义：
 
 ```text
-foo.akm.tar.gz
-bar.akm.tar.gz
+foo.skiloom.tar.gz
+bar.skiloom.tar.gz
 package-specific release asset
 ```
 
-GitHub Release 中存在其他附件时，AKM core 忽略它们。
+GitHub Release 中存在其他附件时，Skiloom Core 忽略它们。
 
 这避免同一个 Release 同时出现“repository 中的 Skill Root”和“额外打包 Skill Asset”两套内容来源。
 
 ## 4. GitHub 自动源码归档只是传输载体
 
-AKM 可以使用 GitHub 为 tag/commit 提供的源码 tarball/zip 获取 repository snapshot，也可以使用等价 Git transport/materialization。
+Skiloom 可以使用 GitHub 为 tag/commit 提供的源码 tarball/zip 获取 repository snapshot，也可以使用等价 Git transport/materialization。
 
 但 **自动生成源码归档的压缩 bytes 不是长期 Package identity**。
 
@@ -94,7 +94,7 @@ AKM 可以使用 GitHub 为 tag/commit 提供的源码 tarball/zip 获取 reposi
 
 - 下载时必须做安全解包和必要的传输完整性检查；
 - 可以在运行日志/cache metadata 中记录本次下载 bytes 的 SHA-256；
-- `akm.lock` 不依赖 source archive byte digest 作为长期可重建 identity；
+- `skiloom.lock` 不依赖 source archive byte digest 作为长期可重建 identity；
 - 长期 identity 使用 exact commit + Package Root + Package content digest。
 
 ## 5. Release Lock identity
@@ -113,7 +113,7 @@ immutable = true
 
 其中：
 
-- `version`：AKM 规范化 SemVer；
+- `version`：Skiloom 规范化 SemVer；
 - `tag`：GitHub 上实际选中的 tag；
 - `commit`：该 Release/tag 首次解析并锁定的 exact commit；
 - `immutable`：获取时 GitHub Release 是否处于 immutable 状态；它是 provenance/trust signal，不是安装准入条件。
@@ -132,7 +132,7 @@ Package content digest 才是 Store snapshot 的内容完整性标识。
 
 ## 6. Immutable Release 是增强信号，不是准入条件
 
-GitHub Immutable Releases 可以降低 tag/asset 被后续修改的风险，但 AKM v0 不要求 repository 开启该功能。
+GitHub Immutable Releases 可以降低 tag/asset 被后续修改的风险，但 Skiloom v0 不要求 repository 开启该功能。
 
 规则：
 
@@ -156,7 +156,7 @@ v1.4.0 -> commit AAA
 v1.4.0 -> commit BBB
 ```
 
-AKM 不得在普通 `sync` 中静默漂移到 `BBB`。
+Skiloom 不得在普通 `sync` 中静默漂移到 `BBB`。
 
 应报告：
 
@@ -201,7 +201,7 @@ parse owner/repo[/package]@version-range
   -> apply repository discovery control
   -> discover SKILL.md Package Roots
   -> select requested package(s)
-  -> read optional akm-package.toml / DEPENDENCIES.md
+  -> read optional skiloom-package.toml / DEPENDENCIES.md
   -> compute Package content digest
   -> put immutable Package snapshot into Store
   -> preflight flat activation names
@@ -217,7 +217,7 @@ Repository-wide target省略 package selector 时，安装该 exact repository s
 ```text
 exact commit
   -> repository tree
-  -> akm-repo.toml
+  -> skiloom-repo.toml
   -> SKILL.md discovery
   -> optional package metadata
   -> dependency resolution
@@ -235,7 +235,7 @@ Release source 用 SemVer Release 选择它；Git source 用显式 ref 选择它
 
 ## 11. 明确不进入 v0
 
-- AKM 专用 per-Skill Release Asset；
+- Skiloom 专用 per-Skill Release Asset；
 - Release Asset package index；
 - 用 source archive byte digest 作为长期 Package identity；
 - 非 SemVer Release version；

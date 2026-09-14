@@ -77,7 +77,7 @@ Package name 已由 Skill grammar 固定为 canonical Skill name。
 所以：
 
 ```text
-Akira-TL/Matt-Skills/ask-matt
+akira-tl/Matt-Skills/ask-matt
 akira-tl/matt-skills/ask-matt
 ```
 

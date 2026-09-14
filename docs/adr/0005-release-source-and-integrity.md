@@ -5,15 +5,15 @@
 
 ## 背景
 
-AKM 已确定 GitHub 是 v0 的直接 source model，并且任何合法 `SKILL.md` 都可以成为 Skill Package。此前设计仍保留可选 per-Skill AKM Release Asset，这会让同一个 GitHub Release 同时存在 repository source 与额外 Package Asset 两套内容来源，增加优先级、对应关系和完整性规则。
+Skiloom 已确定 GitHub 是 v0 的直接 source model，并且任何合法 `SKILL.md` 都可以成为 Skill Package。此前设计仍保留可选 per-Skill Skiloom Release Asset，这会让同一个 GitHub Release 同时存在 repository source 与额外 Package Asset 两套内容来源，增加优先级、对应关系和完整性规则。
 
-同时 GitHub Release tag 本身不天然提供 AKM 所需的版本范围语义；AKM 的 dependency resolver 需要稳定的 repository-level version space。
+同时 GitHub Release tag 本身不天然提供 Skiloom 所需的版本范围语义；Skiloom 的 dependency resolver 需要稳定的 repository-level version space。
 
 ## 决定
 
 ### Release version
 
-AKM Release resolver v0 只接受 Semantic Versioning（SemVer）GitHub Release：
+Skiloom Release resolver v0 只接受 Semantic Versioning（SemVer）GitHub Release：
 
 ```text
 1.4.0
@@ -26,7 +26,7 @@ v1.4.0
 
 ### Release payload
 
-AKM v0 不定义 per-Skill Release Asset。
+Skiloom v0 不定义 per-Skill Release Asset。
 
 Release 只负责：
 
@@ -34,7 +34,7 @@ Release 只负责：
 SemVer version -> actual GitHub tag -> exact commit
 ```
 
-AKM 随后取得该 exact commit 对应 repository source snapshot，并使用与 Git source 完全相同的 `akm-repo.toml` + `SKILL.md` discovery 管线。
+Skiloom 随后取得该 exact commit 对应 repository source snapshot，并使用与 Git source 完全相同的 `skiloom-repo.toml` + `SKILL.md` discovery 管线。
 
 ### 完整性
 
@@ -65,8 +65,8 @@ v1.4.0 -> commit AAA
 ## 结果
 
 - Release 与 Git source 在 exact commit 以后共用同一 discovery / dependency / Store 管线；
-- 普通 Skill repository 无需为 AKM 构建任何额外 Release 包；
-- AKM 不需要定义 Asset/package-index 对齐规则；
+- 普通 Skill repository 无需为 Skiloom 构建任何额外 Release 包；
+- Skiloom 不需要定义 Asset/package-index 对齐规则；
 - repository Release version 与 Package version 不再重复声明；
 - Lock 的 source provenance 与 Package content integrity 分层明确；
 - future Registry 或未来性能优化若需要专用 artifact，可以作为新的 source/transport capability 单独设计，不影响 GitHub v0 协议。

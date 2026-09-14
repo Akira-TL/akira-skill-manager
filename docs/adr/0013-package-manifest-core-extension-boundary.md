@@ -5,7 +5,7 @@
 
 ## 背景
 
-Package Manifest Schema 1 已倾向只包含 `schema`、`[dependencies]` 与 `[software]`。此前 Proposal 把两张 table 都作为同一层“AKM Manifest 语义”处理：`[dependencies]` 影响 Skill dependency graph，`[software]` 则由内建 probe 检查；未知 software probe ID 甚至会让 Package fail fast，并且 software version requirement 曾计划复用 #7 Resolver grammar。
+Package Manifest Schema 1 已倾向只包含 `schema`、`[dependencies]` 与 `[software]`。此前 Proposal 把两张 table 都作为同一层“Skiloom Manifest 语义”处理：`[dependencies]` 影响 Skill dependency graph，`[software]` 则由内建 probe 检查；未知 software probe ID 甚至会让 Package fail fast，并且 software version requirement 曾计划复用 #7 Resolver grammar。
 
 ADR 0012 已明确 Skiloom Core 的 Full conformance 只包含 Package Model、Resolver/Lock 与 Project Activation（P/R/A）。Host software observation 不改变 Package graph、Confirmed Resolution 或 activation ownership，因此属于单独 Host Observation Extension。与此同时，ADR 0010 已接受 `[software]` 作为 reference manager 的 common software observation 输入，不应为了新的标准化分类重新移动或删除该字段。
 

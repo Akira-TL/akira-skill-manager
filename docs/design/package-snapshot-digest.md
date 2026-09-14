@@ -6,7 +6,7 @@
 
 ## 1. 目标
 
-AKM 需要把一个已经 discovery 并选中的 Skill Root 转换成跨 source、跨机器可复现的 immutable Package snapshot。
+Skiloom 需要把一个已经 discovery 并选中的 Skill Root 转换成跨 source、跨机器可复现的 immutable Package snapshot。
 
 同一 exact repository snapshot 中的同一 Package，无论来源是：
 
@@ -52,7 +52,7 @@ bar snapshot
 - `foo` 不会因为目录嵌套获得对 `bar` 的隐式 runtime dependency；
 - 一个 Package 仍然恰好对应一个 Skill。
 
-如果 nested `SKILL.md` 被 `akm-repo.toml` 的 discovery filter 排除，它就不是独立 Package Root，因此其目录仍作为普通内容保留在祖先 Package snapshot 中。
+如果 nested `SKILL.md` 被 `skiloom-repo.toml` 的 discovery filter 排除，它就不是独立 Package Root，因此其目录仍作为普通内容保留在祖先 Package snapshot 中。
 
 ## 3. 允许的文件类型
 
@@ -134,7 +134,7 @@ executable = false | true
 
 ## 6. 文件 bytes 不做内容重写
 
-AKM 对文件 bytes 原样计算 digest。
+Skiloom 对文件 bytes 原样计算 digest。
 
 明确不做：
 
@@ -168,12 +168,12 @@ text encoding conversion
 
 Case folding 只用于前置 collision validation。
 
-## 8. `AKM-PACKAGE-V1` canonical digest
+## 8. `SKILOOM-PACKAGE-V1` canonical digest
 
 v0 format identifier：
 
 ```text
-AKM-PACKAGE-V1
+SKILOOM-PACKAGE-V1
 ```
 
 每个文件先计算：
@@ -198,7 +198,7 @@ v0 的字节级编码固定如下：
 
 ```text
 header:
-  ASCII bytes: "AKM-PACKAGE-V1\0"
+  ASCII bytes: "SKILOOM-PACKAGE-V1\0"
   entry-count: uint64 big-endian
 
 for each file entry in canonical order:
@@ -263,7 +263,7 @@ repo B / commit Z / foo
 
 只要最终 canonical Package snapshot 完全相同，就复用同一 Store entry。
 
-GitHub owner/repo、Release version、tag、commit、package-root 等 provenance 不进入 Store key；它们保存在 `akm.lock`。
+GitHub owner/repo、Release version、tag、commit、package-root 等 provenance 不进入 Store key；它们保存在 `skiloom.lock`。
 
 ## 11. Store 写入与验证
 
@@ -275,7 +275,7 @@ Store entry 是 immutable。
 materialize selected Package snapshot
   -> validate path/file-type portability
   -> remove independently discovered nested Package Roots
-  -> compute AKM-PACKAGE-V1 digest
+  -> compute SKILOOM-PACKAGE-V1 digest
   -> if Store entry already exists:
        verify existing entry computes to same digest
        reuse
@@ -351,7 +351,7 @@ portability:
   reject Unicode case-fold path collision
 
 digest:
-  SHA-256(AKM-PACKAGE-V1 canonical binary stream)
+  SHA-256(SKILOOM-PACKAGE-V1 canonical binary stream)
 
 Store key:
   content-digest

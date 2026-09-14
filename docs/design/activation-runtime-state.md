@@ -17,7 +17,7 @@ lock-version = 1
 
 [[skill]]
 activation-name = "ask-matt"
-coordinate = "Akira-TL/matt-skills/ask-matt"
+coordinate = "akira-tl/matt-skills/ask-matt"
 content-digest = "sha256:3333333333333333333333333333333333333333333333333333333333333333"
 mode = "symlink"
 
@@ -95,16 +95,16 @@ v0 一律使用 `copy`，从 Store entry materialize 项目本地 view，并把�
 
 v0 不引入 hardlink、reflink、bind mount、overlay filesystem 或其他平台特有优化。
 
-## 3. `activation.lock` 与 `akm.lock` 必须一致
+## 3. `activation.lock` 与 `skiloom.lock` 必须一致
 
 每条 `[[skill]]` 必须满足：
 
-1. `coordinate` 存在于 `.agents/.akm/akm.lock [[package]]`；
+1. `coordinate` 存在于 `.agents/.skiloom/skiloom.lock [[package]]`；
 2. `content-digest` 等于该 Package Lock Record 的 digest；
-3. `activation-name` 等于 `.agents/.akm/akm.toml [renames]` 中对应值；若无 rename，则等于 Package name；
+3. `activation-name` 等于 `.agents/.skiloom/skiloom.toml [renames]` 中对应值；若无 rename，则等于 Package name；
 4. `.agents/skills/<activation-name>` 的实际 materialization 与 `mode` 相符。
 
-`activation.lock` 不是新的 resolution source of truth。解析事实仍由 `akm.lock` 决定，它只证明“当前机器把解析结果怎么放到了 `.agents/skills/`”。
+`activation.lock` 不是新的 resolution source of truth。解析事实仍由 `skiloom.lock` 决定，它只证明“当前机器把解析结果怎么放到了 `.agents/skills/`”。
 
 ## 4. Managed activation 验证
 
@@ -126,7 +126,7 @@ v0 不引入 hardlink、reflink、bind mount、overlay filesystem 或其他平�
 
 ### `copy`
 
-AKM 从 Store entry + `activation-name` 确定 expected activation view：
+Skiloom 从 Store entry + `activation-name` 确定 expected activation view：
 
 - 未 rename：expected bytes/tree 等于原始 Package Snapshot；
 - rename：expected view 只在顶层 `SKILL.md` frontmatter `name` 字段上应用确定性 rename，其余 payload bytes 不改写。
@@ -168,8 +168,8 @@ ModifiedManagedActivation
 
 可由后续交互操作显式选择：
 
-1. restore：丢弃该 activation 的本地偏移，按 AKM expected view 重建；
-2. detach：保留当前 `.agents/skills/<name>` 内容，但从 `activation.lock` 移除 AKM ownership；
+1. restore：丢弃该 activation 的本地偏移，按 Skiloom expected view 重建；
+2. detach：保留当前 `.agents/skills/<name>` 内容，但从 `activation.lock` 移除 Skiloom ownership；
 3. abort：不修改任何内容。
 
 v0 不自动“adopt”未知/修改后的内容为新 Package。
@@ -181,7 +181,7 @@ v0 不自动“adopt”未知/修改后的内容为新 Package。
 - pristine managed activation：允许替换/删除；
 - missing managed activation：更新时可重建，删除时只清理 state；
 - modified/replaced managed activation：整次 destructive activation reconciliation 停止，等待显式用户决策；
-- 未在 `activation.lock` 声明的 `.agents/skills/*`：始终视为 foreign content，不能由 AKM 删除或覆盖。
+- 未在 `activation.lock` 声明的 `.agents/skills/*`：始终视为 foreign content，不能由 Skiloom 删除或覆盖。
 
 materialization 使用 sibling temporary path + rename/replace 的方式尽量缩短半写入状态；具体 OS 原子 rename 细节属于实现层，但不得先删除旧 activation 再尝试构建新 activation。
 
@@ -201,7 +201,7 @@ Git Source Cache 与 Package Store 的 GC 继续分开。
 
 ### Package Store
 
-`.agents/skills/` 中的 `symlink` / `junction` 会直接引用 Store entry。单凭当前 project 或某个 `activation.lock`，AKM 无法知道同一机器上是否还有其他 project 引用一个 digest。
+`.agents/skills/` 中的 `symlink` / `junction` 会直接引用 Store entry。单凭当前 project 或某个 `activation.lock`，Skiloom 无法知道同一机器上是否还有其他 project 引用一个 digest。
 
 因此 v0 规则：
 
@@ -229,7 +229,7 @@ resolved Package
        symlink (POSIX preferred)
        junction (Windows preferred)
        copy (fallback / all renames)
-  -> .agents/.akm/activation.lock ownership
+  -> .agents/.skiloom/activation.lock ownership
 ```
 
 并且：

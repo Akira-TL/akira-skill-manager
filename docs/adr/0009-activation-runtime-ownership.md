@@ -5,7 +5,7 @@
 
 ## 背景
 
-ADR 0008 已确定 AKM 把 resolved Skill 直接扁平激活到项目 `.agents/skills/<activation-name>`，并用 `.agents/.akm/activation.lock` 区分 AKM-managed Skill 与 foreign content。剩余问题是：`activation.lock` 应保存哪些字段、不同平台如何 materialize、managed activation 被外部修改后如何恢复，以及 Package Store 是否可以安全自动 GC。
+ADR 0008 已确定 Skiloom 把 resolved Skill 直接扁平激活到项目 `.agents/skills/<activation-name>`，并用 `.agents/.skiloom/activation.lock` 区分 Skiloom-managed Skill 与 foreign content。剩余问题是：`activation.lock` 应保存哪些字段、不同平台如何 materialize、managed activation 被外部修改后如何恢复，以及 Package Store 是否可以安全自动 GC。
 
 ## 决定
 
@@ -47,8 +47,8 @@ copy
 对 modified activation，用户显式选择：
 
 ```text
-restore  -> 丢弃本地偏移并按 AKM expected view 重建
-detach   -> 保留当前内容并移除 AKM ownership
+restore  -> 丢弃本地偏移并按 Skiloom expected view 重建
+detach   -> 保留当前内容并移除 Skiloom ownership
 abort    -> 不修改
 ```
 
@@ -62,7 +62,7 @@ v0 不自动 adopt 外部修改内容为新 Package。
 
 Git Source Cache 是可丢弃 acquisition cache，可以采用 LRU、size cap、age based pruning。
 
-Package Store 不同：`.agents/skills/` 中的 symlink/junction 可能由机器上多个项目直接引用 Store entry。没有 machine-wide project registry / lease / refcount 时，AKM 无法证明一个 digest 已无任何活跃引用。
+Package Store 不同：`.agents/skills/` 中的 symlink/junction 可能由机器上多个项目直接引用 Store entry。没有 machine-wide project registry / lease / refcount 时，Skiloom 无法证明一个 digest 已无任何活跃引用。
 
 因此 v0：
 
@@ -74,4 +74,4 @@ Package Store 不同：`.agents/skills/` 中的 symlink/junction 可能由机器
 
 ## 结果
 
-Activation state 保持极小，只描述“这个 Package digest 当前以什么物理方式出现在这个 activation name 下”；resolution 仍由 `akm.lock` 决定。Rename 不制造新 Store Package，managed drift 默认 fail closed，且 v0 不因缺乏全局引用证明而冒险删除共享 Store 内容。
+Activation state 保持极小，只描述“这个 Package digest 当前以什么物理方式出现在这个 activation name 下”；resolution 仍由 `skiloom.lock` 决定。Rename 不制造新 Store Package，managed drift 默认 fail closed，且 v0 不因缺乏全局引用证明而冒险删除共享 Store 内容。

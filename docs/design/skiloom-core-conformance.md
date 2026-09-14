@@ -82,7 +82,7 @@ Core Package implementation：
 - MUST 从祖先 snapshot 中裁掉已经进入最终 Discovery Set 的 nested Skill Roots；
 - MUST 对 v0 snapshot 拒绝 symlink 与其他已禁止的特殊文件类型；
 - MUST 使用已接受的 portable path 校验、raw UTF-8 ordering、source Git executable bit 与 exact file bytes；
-- MUST 使用 `AKM-PACKAGE-V1` 当前已接受的 canonical binary framing，直到 #14/后续 format migration 通过显式新 format version 替换；
+- MUST 使用 `SKILOOM-PACKAGE-V1` 当前已接受的 canonical binary framing，直到 #14/后续 format migration 通过显式新 format version 替换；
 - MUST 让相同 Package Snapshot 在不同 source/repository/transport 下得到相同 `content-digest`；
 - MUST NOT 把 Git commit、GitHub archive digest、临时 checkout metadata 或 source provenance 混入 Package Content Digest。
 

@@ -4,7 +4,7 @@
 
 ## 1. GitHub 是 v0 分发坐标系
 
-AKM v0 的安装目标直接使用：
+Skiloom v0 的安装目标直接使用：
 
 ```text
 <owner>/<repo>[/<package>]@<version-or-ref>
@@ -13,8 +13,8 @@ AKM v0 的安装目标直接使用：
 例如：
 
 ```text
-Akira-TL/matt-skills/ask-matt@1.4.0
-Akira-TL/matt-skills@1.4.0
+akira-tl/matt-skills/ask-matt@1.4.0
+akira-tl/matt-skills@1.4.0
 ```
 
 - 指定 `package`：安装一个 Skill 及其 dependency closure；
@@ -40,7 +40,7 @@ ask-matt/
 ```text
 ask-matt/
 ├── SKILL.md
-├── akm-package.toml       # optional：结构化 Skill/software dependency
+├── skiloom-package.toml       # optional：结构化 Skill/software dependency
 ├── DEPENDENCIES.md        # optional：Agent-readable 特殊依赖说明
 ├── scripts/               # optional
 ├── references/            # optional
@@ -55,26 +55,26 @@ Package Root == Skill Root
 Package Name == SKILL.md.name
 ```
 
-`akm-package.toml` 和 `DEPENDENCIES.md` 都不是发现 Package 的前提。
+`skiloom-package.toml` 和 `DEPENDENCIES.md` 都不是发现 Package 的前提。
 
 ## 3. Package discovery 只认 `SKILL.md`
 
-Repository 可以在根目录提供可选 `akm-repo.toml`，仅用 `include` / `exclude` 过滤哪些 Package Root 参与 discovery。没有该文件时默认扫描整个版本化 source snapshot。详见 [`repository-discovery.md`](repository-discovery.md)。
+Repository 可以在根目录提供可选 `skiloom-repo.toml`，仅用 `include` / `exclude` 过滤哪些 Package Root 参与 discovery。没有该文件时默认扫描整个版本化 source snapshot。详见 [`repository-discovery.md`](repository-discovery.md)。
 
 ### Git source
 
 Git 模式不能假设 Package 位于 `skills/<name>` 或任何固定目录。
 
-AKM 对 exact commit 的 **tracked Git tree** 枚举所有 `SKILL.md`：
+Skiloom 对 exact commit 的 **tracked Git tree** 枚举所有 `SKILL.md`：
 
 1. 每个 `SKILL.md` 的父目录是 Package Root candidate；
 2. 解析 frontmatter `name`；
 3. 校验 `basename(root) == SKILL.md.name`；
 4. repository 内同一个 `SKILL.md.name` 只能对应一个 candidate；
-5. 如果 root `akm-repo.toml` 存在，先按 repository-relative Package Root path 应用 `include` / `exclude`；
+5. 如果 root `skiloom-repo.toml` 存在，先按 repository-relative Package Root path 应用 `include` / `exclude`；
 6. 过滤后同一个 `SKILL.md.name` 仍只能对应一个 candidate；
 7. 不同名称的 nested Package Root 可以同时存在；嵌套本身不构成 discovery error；
-8. `akm-package.toml` 存在时读取增强依赖元数据；
+8. `skiloom-package.toml` 存在时读取增强依赖元数据；
 9. `DEPENDENCIES.md` 存在时记录其 digest，并交给 Agent 做特殊依赖检查；
 10. 指定 package 时按 `SKILL.md.name` 匹配；
 11. 未指定 package 时选择全部最终合法 candidate；
@@ -97,7 +97,7 @@ repo/agent-tools/routers/ask-matt/SKILL.md
 
 ### Release source
 
-Release source 先把规范化 SemVer Release 解析为 actual tag + exact commit，再从该 repository snapshot 执行与 Git source 相同的 `SKILL.md` discovery。v0 不定义 per-Skill AKM Release Asset。
+Release source 先把规范化 SemVer Release 解析为 actual tag + exact commit，再从该 repository snapshot 执行与 Git source 相同的 `SKILL.md` discovery。v0 不定义 per-Skill Skiloom Release Asset。
 
 ## 4. Release-first，Git source 显式启用
 
@@ -118,20 +118,20 @@ SKILL.md discovery
 没有 Release 或明确需要源码版本时，用户显式进入 Git source，例如：
 
 ```text
-akm install owner/repo/package@main --git
-akm install owner/repo@<commit> --git
+skiloom install owner/repo/package@main --git
+skiloom install owner/repo@<commit> --git
 ```
 
-AKM 不静默把一次 Release 安装切换成 branch checkout。
+Skiloom 不静默把一次 Release 安装切换成 branch checkout。
 
 ## 5. Git source 使用机器级 Source Cache
 
 无 Release 的 GitHub Skill 不应该每个项目重复 clone，也不应该把整个 repository 直接暴露到项目 `.agents/skills/`。
 
-AKM 维护可丢弃、可重新获取的机器级 Git source cache，例如逻辑布局：
+Skiloom 维护可丢弃、可重新获取的机器级 Git source cache，例如逻辑布局：
 
 ```text
-~/.cache/akm/git/
+~/.cache/skiloom/git/
 └── github.com/
     └── <owner>/
         └── <repo>.git/        # bare/mirror-style repository cache
@@ -202,7 +202,7 @@ Git commit Y
 Router 是普通 Skill。
 
 - `SKILL.md`：告诉 Agent 什么时候路由到哪些能力；
-- 可选 `akm-package.toml`：让 AKM 自动安装相关 Skill dependencies。
+- 可选 `skiloom-package.toml`：让 Skiloom 自动安装相关 Skill dependencies。
 
 因此：
 
@@ -210,7 +210,7 @@ Router 是普通 Skill。
 Skill Suite = Router Skill + dependency closure
 ```
 
-没有 `akm-package.toml` 的 Router 也能安装，只是 AKM 不猜测它有哪些依赖。
+没有 `skiloom-package.toml` 的 Router 也能安装，只是 Skiloom 不猜测它有哪些依赖。
 
 ## 8. 禁止跨 Package Runtime 隐式共享
 
@@ -232,11 +232,11 @@ resolved Package 最终直接激活到：
 <project>/.agents/skills/<activation-name>
 ```
 
-默认 `activation-name = SKILL.md.name`。Source coordinate 只保存在 `.agents/.akm/akm.lock`，不进入 executor-visible 目录层级。
+默认 `activation-name = SKILL.md.name`。Source coordinate 只保存在 `.agents/.skiloom/skiloom.lock`，不进入 executor-visible 目录层级。
 
-不同 repository 可以各自拥有同名 Package，但如果两个 Package 默认都需要占用同一个 `.agents/skills/<name>`，则在 activation preflight 返回 `ActivationNameConflict`。AKM 必须提示用户为新安装项 rename 或放弃；不得自动覆盖或自动改名。
+不同 repository 可以各自拥有同名 Package，但如果两个 Package 默认都需要占用同一个 `.agents/skills/<name>`，则在 activation preflight 返回 `ActivationNameConflict`。Skiloom 必须提示用户为新安装项 rename 或放弃；不得自动覆盖或自动改名。
 
-用户批准的 rename 记录在 `.agents/.akm/akm.toml [renames]`。rename 只改变项目 runtime Skill identity，不改变原始 Package Store `content-digest`；完整语义见 [`project-activation.md`](project-activation.md)。
+用户批准的 rename 记录在 `.agents/.skiloom/skiloom.toml [renames]`。rename 只改变项目 runtime Skill identity，不改变原始 Package Store `content-digest`；完整语义见 [`project-activation.md`](project-activation.md)。
 
 ## 10. Package 名称
 

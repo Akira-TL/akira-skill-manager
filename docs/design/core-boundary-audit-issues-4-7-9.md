@@ -37,7 +37,7 @@
 
 ### 2.2 `[software]` 必须从 Core dependency graph 重新归类
 
-现有 Accepted external-software 设计不需要回退：reference manager 仍可以在同一个 optional Package Manifest 中读取 `[software]`，执行便宜只读 probe，并把 observation 写入 `.agents/.akm/dependencies.lock`。
+现有 Accepted external-software 设计不需要回退：reference manager 仍可以在同一个 optional Package Manifest 中读取 `[software]`，执行便宜只读 probe，并把 observation 写入 `.agents/.skiloom/dependencies.lock`。
 
 但 ADR 0012 之后，以下边界必须明确：
 

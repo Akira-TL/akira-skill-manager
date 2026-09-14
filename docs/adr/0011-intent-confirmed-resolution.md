@@ -15,11 +15,11 @@ Project state 固定分成两层语义：
 
 ```text
 Project Intent
-= `.agents/.akm/akm.toml [skills]`
+= `.agents/.skiloom/skiloom.toml [skills]`
 = 用户允许的 top-level requirements
 
 Confirmed Resolution
-= `.agents/.akm/akm.lock`
+= `.agents/.skiloom/skiloom.lock`
 = 用户已经接受的 exact repositories / packages / dependency graph
 ```
 
@@ -63,8 +63,8 @@ Frozen mode 用于 CI / automation 明确要求“必须已有且完全匹配的
 
 ## 结果
 
-- `akm.toml` 是允许范围，不是当前安装版本；
-- `akm.lock` 是已确认结果，不是 resolver cache；
+- `skiloom.toml` 是允许范围，不是当前安装版本；
+- `skiloom.lock` 是已确认结果，不是 resolver cache；
 - `sync` 负责恢复/校验，不负责升级；
 - `update` 负责产生 candidate，并且只有显式接受后才改变 Lock；
 - CI 可以使用 frozen mode 保证项目没有隐式 resolution transition；

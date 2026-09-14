@@ -1,6 +1,6 @@
 # Domain Docs
 
-Akira sKill Manager 当前采用 single-context domain model。
+Skiloom 当前采用 single-context domain model。
 
 ## 开始设计或实现前
 
@@ -10,4 +10,4 @@ Akira sKill Manager 当前采用 single-context domain model。
 
 ## 当前特别注意
 
-Package 与 Skill 的基数关系、Skill 包目录结构、AKM 扩展元数据位置仍未最终确定。任何设计或实现不得仅因为旧文档曾写过某个方案就把它视为既定事实。
+Package 与 Skill 的基数、Package Snapshot、Project Intent / Confirmed Resolution、Core conformance 与公开 `skiloom` namespace 已经由 Accepted ADR 固定。设计或实现必须以当前 Accepted design/ADR 为准；Rejected ADR 与 pre-standard `AKM / akm` namespace 只提供历史上下文，不能重新成为实现 authority。

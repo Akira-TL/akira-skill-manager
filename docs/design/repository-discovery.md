@@ -6,29 +6,29 @@
 
 ## 1. 决定
 
-AKM 以合法 `SKILL.md` 作为 Skill Package 的唯一最低准入条件。Repository 默认对 exact source snapshot 中全部版本化 `SKILL.md` 做自动发现；仓库作者可以在 repository root 提供可选 `akm-repo.toml`，只用于过滤 discovery 范围。
+Skiloom 以合法 `SKILL.md` 作为 Skill Package 的唯一最低准入条件。Repository 默认对 exact source snapshot 中全部版本化 `SKILL.md` 做自动发现；仓库作者可以在 repository root 提供可选 `skiloom-repo.toml`，只用于过滤 discovery 范围。
 
-`akm-repo.toml` 不定义 Package name、version、dependencies，也不能把没有合法 `SKILL.md` 的目录变成 Package。
+`skiloom-repo.toml` 不定义 Package name、version、dependencies，也不能把没有合法 `SKILL.md` 的目录变成 Package。
 
 ## 2. 文件名与位置
 
 固定文件名：
 
 ```text
-akm-repo.toml
+skiloom-repo.toml
 ```
 
 只在 repository root 识别：
 
 ```text
 repo/
-├── akm-repo.toml       # optional
+├── skiloom-repo.toml       # optional
 ├── skills/
 ├── examples/
 └── ...
 ```
 
-不用 `akm.toml`，因为该名称用于 Project Manifest；不用 `akm-workspace.toml`，避免与运行时 workspace / project environment 概念混淆。
+不用 `skiloom.toml`，因为该名称用于 Project Manifest；不用 `skiloom-workspace.toml`，避免与运行时 workspace / project environment 概念混淆。
 
 ## 3. 最小格式
 
@@ -48,7 +48,7 @@ exclude = [
 
 ## 4. 零配置主路径
 
-没有 `akm-repo.toml` 时等价于：
+没有 `skiloom-repo.toml` 时等价于：
 
 ```text
 include = ["**"]
@@ -57,7 +57,7 @@ exclude = []
 
 也就是对整个 exact source snapshot 中的版本化 `SKILL.md` 做 discovery。
 
-普通第三方 Skill repository 完全不需要增加 AKM 文件。
+普通第三方 Skill repository 完全不需要增加 Skiloom 文件。
 
 ## 5. Pattern 匹配对象
 
@@ -107,7 +107,7 @@ v0 固定规则：
 
 ```text
 exact repository snapshot
-  -> read root akm-repo.toml if present
+  -> read root skiloom-repo.toml if present
   -> enumerate versioned SKILL.md files
   -> derive Package Root paths
   -> apply include/exclude to Package Root paths
@@ -116,7 +116,7 @@ exact repository snapshot
   -> select requested package(s)
 ```
 
-过滤发生在完整 Skill validation 前是为了避免无关 example/fixture 阻塞正式 Package discovery；但过滤不能“修复”被选中的非法 Skill。任何进入最终集合的 root 都必须满足 Agent Skills/AKM 的 Skill Root 校验。
+过滤发生在完整 Skill validation 前是为了避免无关 example/fixture 阻塞正式 Package discovery；但过滤不能“修复”被选中的非法 Skill。任何进入最终集合的 root 都必须满足 Agent Skills/Skiloom 的 Skill Root 校验。
 
 ## 8. Package Name 与重名
 
@@ -141,7 +141,7 @@ b/foo/SKILL.md     name: foo
 
 则 `owner/repo/foo` 无法唯一解析，返回 `AmbiguousPackageDiscovery`。
 
-作者可以使用 `exclude` 排除不希望参与发布/安装的那一个 root，但 AKM 不增加 `package-name -> path` 第二份映射。
+作者可以使用 `exclude` 排除不希望参与发布/安装的那一个 root，但 Skiloom 不增加 `package-name -> path` 第二份映射。
 
 ## 9. Nested Skill Roots 允许
 
@@ -161,7 +161,7 @@ owner/repo/foo
 owner/repo/bar
 ```
 
-AKM 不因为目录嵌套自动选择浅层或深层，也不把嵌套本身当错误。
+Skiloom 不因为目录嵌套自动选择浅层或深层，也不把嵌套本身当错误。
 
 真正的歧义仍然只按最终 Package Name 判断：若两个 selected root 都声明 `name: foo`，才返回 `AmbiguousPackageDiscovery`。
 
@@ -176,27 +176,27 @@ exclude = ["skills/foo/examples/**"]
 
 ### Snapshot 边界
 
-允许 nested Skill Root 不代表外层 Package 可以运行时依赖内层 Package。AKM 在 materialize 一个 Package Snapshot 时维护“一个 Package = 一个 Skill”的边界：
+允许 nested Skill Root 不代表外层 Package 可以运行时依赖内层 Package。Skiloom 在 materialize 一个 Package Snapshot 时维护“一个 Package = 一个 Skill”的边界：
 
 - 如果 nested Skill Root 已进入最终 discovery set，则从所有祖先 Package Snapshot 中裁掉并独立 snapshot；
-- 如果 nested `SKILL.md` 被 `akm-repo.toml` 排除，则它不是独立 Package Root，仍作为祖先 Package 的普通内容保留。
+- 如果 nested `SKILL.md` 被 `skiloom-repo.toml` 排除，则它不是独立 Package Root，仍作为祖先 Package 的普通内容保留。
 
 因此独立 nested Skill 的内容变化不会改变祖先 Package Content Digest，也不会形成隐式跨 Package runtime dependency。完整规则见 [`package-snapshot-digest.md`](package-snapshot-digest.md)。
 
 ## 10. Release 与 Git 使用同一规则
 
-`akm-repo.toml` 属于 repository source snapshot：
+`skiloom-repo.toml` 属于 repository source snapshot：
 
-- GitHub Release source archive：读取该 Release snapshot 根目录中的 `akm-repo.toml`；
-- Git source：读取 exact commit 根目录中的 `akm-repo.toml`；
+- GitHub Release source archive：读取该 Release snapshot 根目录中的 `skiloom-repo.toml`；
+- Git source：读取 exact commit 根目录中的 `skiloom-repo.toml`；
 - Git Source Cache 只负责取得 exact tree，不保存独立 discovery policy；
 - 同一 exact repository snapshot 无论从 Release archive 还是 Git source 获取，discovery 结果应一致。
 
-Lock 保存最终的 `package-root`、Package Name 和 exact source snapshot，不需要复制完整 `akm-repo.toml` 内容；是否额外保存其 digest 留给 Lock canonical schema 决定。
+Lock 保存最终的 `package-root`、Package Name 和 exact source snapshot，不需要复制完整 `skiloom-repo.toml` 内容；是否额外保存其 digest 留给 Lock canonical schema 决定。
 
 ## 11. Release 与 Git 都只发现 Repository Snapshot
 
-v0 不存在 package-specific AKM Release Asset，因此 repository discovery 永远面对一个 exact repository snapshot：
+v0 不存在 package-specific Skiloom Release Asset，因此 repository discovery 永远面对一个 exact repository snapshot：
 
 ```text
 Release -> exact commit -> repository snapshot
@@ -232,7 +232,7 @@ owner/repo@...
 
 ## 13. 不属于本文件的职责
 
-`akm-repo.toml` v0 不承担：
+`skiloom-repo.toml` v0 不承担：
 
 - Package name/path 映射；
 - Package dependency；
@@ -247,7 +247,7 @@ owner/repo@...
 ## 14. 最终 v0 契约
 
 ```text
-文件：akm-repo.toml
+文件：skiloom-repo.toml
 位置：repository root
 是否必需：否
 无文件默认：全仓版本化 SKILL.md 自动发现

@@ -22,31 +22,31 @@ foo/
 ```text
 foo/
 ├── SKILL.md
-├── akm-package.toml       # optional structured Skill/software requirements
+├── skiloom-package.toml       # optional structured Skill/software requirements
 └── DEPENDENCIES.md        # optional Agent-readable special requirements
 ```
 
-两种可选文件职责不同，AKM 不因为缺失它们而拒绝 Package。
+两种可选文件职责不同，Skiloom 不因为缺失它们而拒绝 Package。
 
 ## 2. 三层依赖模型
 
 ```text
 Skill dependency
-→ optional akm-package.toml [dependencies]
-→ AKM Resolver 自动解析/安装
+→ optional skiloom-package.toml [dependencies]
+→ Skiloom Resolver 自动解析/安装
 
 常见可机械探测软件
-→ optional akm-package.toml [software]
-→ AKM core 只读 probe
-→ .agents/.akm/dependencies.lock
+→ optional skiloom-package.toml [software]
+→ Skiloom Core 只读 probe
+→ .agents/.skiloom/dependencies.lock
 
 复杂软件/硬件/服务/数据/授权条件
 → optional immutable DEPENDENCIES.md
 → Agent 检查/解释
-→ .agents/.akm/dependencies.lock
+→ .agents/.skiloom/dependencies.lock
 ```
 
-没有声明时，AKM 不从 `SKILL.md` 自然语言、目录名或脚本内容猜测 requirement。
+没有声明时，Skiloom 不从 `SKILL.md` 自然语言、目录名或脚本内容猜测 requirement。
 
 ## 3. `DEPENDENCIES.md` 永不写当前状态
 
@@ -70,11 +70,11 @@ Skill dependency
 - Resolution: explain the gap and ask before modifying Blender.
 ```
 
-当前机器 observation 永远写 `.agents/.akm/dependencies.lock`，不得回写 `DEPENDENCIES.md`。
+当前机器 observation 永远写 `.agents/.skiloom/dependencies.lock`，不得回写 `DEPENDENCIES.md`。
 
 ## 4. `[software]` 是可选结构化 probe 输入
 
-Package Manifest 可以声明少量 AKM 内建 probe 支持的常见软件：
+Package Manifest 可以声明少量 Skiloom 内建 probe 支持的常见软件：
 
 ```toml
 [software]
@@ -84,14 +84,14 @@ python = ">=3.11"
 node = ">=22"
 ```
 
-AKM core 对这些 requirement 最多：
+Skiloom Core 对这些 requirement 最多：
 
 - 找 executable/runtime；
 - 尝试读取版本；
 - 判断当前 requirement 是否满足；
 - 写本机 observation。
 
-AKM core 不执行：
+Skiloom Core 不执行：
 
 - 安装/升级/删除软件；
 - 自动选择 apt/brew/winget/choco 等 provider；
@@ -100,7 +100,7 @@ AKM core 不执行：
 - 驱动/服务/系统配置变更；
 - Package 自定义系统安装脚本。
 
-## 5. `.agents/.akm/dependencies.lock`
+## 5. `.agents/.skiloom/dependencies.lock`
 
 它是当前机器的可重建 observation state，默认不提交版本控制：
 
@@ -108,7 +108,7 @@ AKM core 不执行：
 lock-version = 1
 
 [[package]]
-coordinate = "Akira-TL/matt-skills/ask-matt"
+coordinate = "akira-tl/matt-skills/ask-matt"
 content-digest = "sha256:3333333333333333333333333333333333333333333333333333333333333333"
 
 [[package.software]]
@@ -181,7 +181,7 @@ doctor
 
 ## 8. Special dependency 由 Agent 管理
 
-AKM core 不把 `DEPENDENCIES.md` 强行解析成结构化 requirement schema。
+Skiloom Core 不把 `DEPENDENCIES.md` 强行解析成结构化 requirement schema。
 
 Agent 完成只读检查后可以记录：
 
@@ -204,7 +204,7 @@ Special observation 不按时间自动过期；以下情况重新检查：
 
 ## 9. Writer ownership
 
-AKM core 负责：
+Skiloom Core 负责：
 
 - Package `coordinate` / `content-digest`；
 - `[[package.software]]` records；
@@ -228,21 +228,21 @@ Package 若没有 `[software]` 且没有 special observations，可以完全省�
 
 ## 10. 可删除、可重建
 
-删除 `.agents/.akm/dependencies.lock` 只会导致：
+删除 `.agents/.skiloom/dependencies.lock` 只会导致：
 
 - 下一次 `sync` / `doctor` 重新做 common software probe；
 - Special requirement 在需要时由 Agent 重新检查。
 
 不会改变：
 
-- `.agents/.akm/akm.lock` resolution；
+- `.agents/.skiloom/skiloom.lock` resolution；
 - Package Store；
 - source provenance；
 - `.agents/skills/` activation。
 
 ## 11. 可复用 Agent 能力仍使用 Skill dependency
 
-如果 requirement 本质上是另一个 Agent Skill 能力，而作者希望 AKM 自动安装，应声明：
+如果 requirement 本质上是另一个 Agent Skill 能力，而作者希望 Skiloom 自动安装，应声明：
 
 ```toml
 [dependencies]

@@ -6,13 +6,13 @@ Class R 的 normative resolution contract 已固定在 [`resolver-conformance.md
 
 ## 1. Resolver 的对象
 
-AKM v0 直接解析 GitHub source：
+Skiloom v0 直接解析 GitHub source：
 
 ```text
 owner/repo[/package]@version-or-ref
 ```
 
-它不要求 Skill 作者先注册到独立 Registry，也不要求存在 `akm-package.toml`。
+它不要求 Skill 作者先注册到独立 Registry，也不要求存在 `skiloom-package.toml`。
 
 每个被选择的 Skill Package 至少由以下信息确定：
 
@@ -25,7 +25,7 @@ SKILL.md.name
 content digest
 ```
 
-如果可选 `akm-package.toml` 存在，Resolver 再展开其结构化 Skill dependencies。
+如果可选 `skiloom-package.toml` 存在，Resolver 再展开其结构化 Skill dependencies。
 
 ## 2. Release source
 
@@ -42,9 +42,9 @@ owner/repo/bar@^1.4
 
 Release resolver v0 只接受 published (`draft=false`) GitHub Release；actual tag 必须可按 SemVer 规范化，允许可选前导 `v`。例如 `1.4.0` 与 `v1.4.0` 都规范化为版本 `1.4.0`；如果两者同时存在则构成 `AmbiguousReleaseVersion`。GitHub `prerelease` / latest / timestamp / API 返回顺序不参与 Class R candidate eligibility 或 ordering。
 
-选定 Release 后，AKM 记录 actual tag，并把 tag 最终 peel 到 exact commit；`target_commitish` 不作为 exact source identity。随后只从该 repository source snapshot 按 `SKILL.md` discovery 找到 Package Root。v0 不使用 package-specific AKM Release Asset。
+选定 Release 后，Skiloom 记录 actual tag，并把 tag 最终 peel 到 exact commit；`target_commitish` 不作为 exact source identity。随后只从该 repository source snapshot 按 `SKILL.md` discovery 找到 Package Root。v0 不使用 package-specific Skiloom Release Asset。
 
-Package 没有 Manifest 时仍是合法 leaf Package，只是没有 AKM 可见的结构化 transitive dependency。
+Package 没有 Manifest 时仍是合法 leaf Package，只是没有 Skiloom 可见的结构化 transitive dependency。
 
 ## 3. Git source
 
@@ -54,7 +54,7 @@ Package 没有 Manifest 时仍是合法 leaf Package，只是没有 AKM 可见�
 owner/repo/foo@main --git
 ```
 
-AKM：
+Skiloom：
 
 1. 从机器级 Git Source Cache 取得/fetch repository；
 2. 把 requested ref 解析为 exact commit；
@@ -69,7 +69,7 @@ Git source 不直接把 mutable checkout 暴露给项目。
 逻辑布局：
 
 ```text
-~/.cache/akm/git/github.com/<owner>/<repo>.git/
+~/.cache/skiloom/git/github.com/<owner>/<repo>.git/
 ```
 
 它适合实现为 bare/mirror-style repository cache：
@@ -80,7 +80,7 @@ Git source 不直接把 mutable checkout 暴露给项目。
 - discovery 可以直接读 Git tree，真正需要 snapshot 时再临时 materialize；
 - cache 可以删除并重新获取，不是项目状态真相。
 
-Source Cache 不进入 `.agents/.akm/akm.lock` 的本机绝对路径。Lock 只保存可重建 provenance：repository、requested ref、exact commit、package-root、content digest。
+Source Cache 不进入 `.agents/.skiloom/skiloom.lock` 的本机绝对路径。Lock 只保存可重建 provenance：repository、requested ref、exact commit、package-root、content digest。
 
 ## 5. Package discovery
 
@@ -100,10 +100,10 @@ Git checkout/package path **不能由安装坐标提前推出**。
 basename(package-root) == SKILL.md.name
 ```
 
-6. 如果 repository root 存在可选 `akm-repo.toml`，对 candidate 的 repository-relative Package Root path 应用 `include` / `exclude`；没有配置时等价于全量候选；
+6. 如果 repository root 存在可选 `skiloom-repo.toml`，对 candidate 的 repository-relative Package Root path 应用 `include` / `exclude`；没有配置时等价于全量候选；
 7. 过滤后如果同一个 `SKILL.md.name` 出现多个 candidate，报告 `AmbiguousPackageDiscovery`；
 8. 过滤后的 Package Root 允许互相嵌套；嵌套本身不构成 discovery error；
-9. 如果 `akm-package.toml` 存在，解析依赖增强信息；
+9. 如果 `skiloom-package.toml` 存在，解析依赖增强信息；
 10. 如果 `DEPENDENCIES.md` 存在，记录其 digest；
 11. selector 存在时按 `SKILL.md.name` 匹配；
 12. selector 省略时选择全部最终合法 Package Roots；
@@ -191,10 +191,10 @@ Skill dependency 只来自可选 Manifest：
 没有 Manifest：
 
 ```text
-AKM graph node has no declared outgoing Skill edges
+Skiloom graph node has no declared outgoing Skill edges
 ```
 
-AKM 不从 `SKILL.md` 自然语言、目录名称或引用文件中猜测结构化 dependency。
+Skiloom 不从 `SKILL.md` 自然语言、目录名称或引用文件中猜测结构化 dependency。
 
 Dependency graph v0 允许 cycle：
 
@@ -265,13 +265,13 @@ packages:
 
 activation:
   default name = SKILL.md.name
-  explicit project rename from .agents/.akm/akm.toml [renames] when present
+  explicit project rename from .agents/.skiloom/skiloom.toml [renames] when present
 
 edges:
   manifest-declared exact dependency edges（只保存 owner/repo/package）
 
 common software requirements:
-  optional manifest [software]（用于 dependency checking，不复制进 akm.lock）
+  optional manifest [software]（用于 dependency checking，不复制进 skiloom.lock）
 
 warnings:
   optional dependency checks still requiring Agent inspection
@@ -288,7 +288,7 @@ warnings:
 ### Discovery
 
 - 每个 repository snapshot 发现哪些 `SKILL.md` roots；
-- root `akm-repo.toml`（若存在）的 include/exclude 过滤结果；
+- root `skiloom-repo.toml`（若存在）的 include/exclude 过滤结果；
 - selector 最终匹配哪个 relative path；
 - 是否有重名或非法 frontmatter；nested Package Root 本身允许存在。
 
@@ -297,12 +297,12 @@ warnings:
 - Release/Git source provenance 与 exact commit；
 - source materialization safety；
 - `SKILL.md`；
-- optional `akm-package.toml`；
+- optional `skiloom-package.toml`；
 - optional `DEPENDENCIES.md`；
 - Package Snapshot path/file-type portability；
 - independently discovered nested Skill Roots 已从祖先 snapshot 裁掉；
 - executable bool 来自 source snapshot Git mode；
-- `AKM-PACKAGE-V1` canonical `content-digest`。
+- `SKILOOM-PACKAGE-V1` canonical `content-digest`。
 
 ### Activate
 
@@ -314,11 +314,11 @@ warnings:
 
 默认 activation name 等于 `SKILL.md.name`。如果计划内两个 Package 或已有未知 Skill 占用同名路径，返回 `ActivationNameConflict`，交互模式让用户为新安装项 rename 或放弃；非交互模式没有预配置 rename 时直接失败。
 
-用户批准的 rename 写入 `.agents/.akm/akm.toml [renames]`。未 rename Package 可直接链接 Store；rename Package materialize 项目本地合法 Skill view，并保持原始 Store `content-digest` 不变。当前 managed activation state 写入 `.agents/.akm/activation.lock`。
+用户批准的 rename 写入 `.agents/.skiloom/skiloom.toml [renames]`。未 rename Package 可直接链接 Store；rename Package materialize 项目本地合法 Skill view，并保持原始 Store `content-digest` 不变。当前 managed activation state 写入 `.agents/.skiloom/activation.lock`。
 
 ### Dependency check
 
-只有存在 `[software]` 才运行对应 common probes；只有存在 `DEPENDENCIES.md` 才提示 Agent 存在特殊依赖说明。检查结果写 `.agents/.akm/dependencies.lock`。
+只有存在 `[software]` 才运行对应 common probes；只有存在 `DEPENDENCIES.md` 才提示 Agent 存在特殊依赖说明。检查结果写 `.agents/.skiloom/dependencies.lock`。
 
 ## 13. 执行顺序
 
@@ -331,9 +331,9 @@ parse Project Intent
   -> obtain only the exact locked source/content needed for restore
   -> verify/materialize immutable Store entries
   -> preflight flat .agents/skills activation names
-  -> reconcile .agents/skills + .agents/.akm/activation.lock
+  -> reconcile .agents/skills + .agents/.skiloom/activation.lock
   -> run common probes
-  -> update .agents/.akm/dependencies.lock
+  -> update .agents/.skiloom/dependencies.lock
 ```
 
 不调用版本选择器，也不产生新的 Lock。
@@ -352,7 +352,7 @@ parse Project Intent
   -> show candidate or diff against current Confirmed Resolution
   -> explicit accept
   -> atomically materialize/reconcile Store + activation
-  -> atomically write new .agents/.akm/akm.lock
+  -> atomically write new .agents/.skiloom/skiloom.lock
   -> run/update dependency observations
 ```
 
@@ -370,7 +370,7 @@ parse Project Intent
 
 ## 15. remove / orphan / why
 
-删除顶层 target 后重新计算 manifest-declared dependency closure。不可达 Package 对应的 AKM-managed `.agents/skills/<activation-name>` 按 `.agents/.akm/activation.lock` 安全移除；Store 进入独立 GC 候选。
+删除顶层 target 后重新计算 manifest-declared dependency closure。不可达 Package 对应的 Skiloom-managed `.agents/skills/<activation-name>` 按 `.agents/.skiloom/activation.lock` 安全移除；Store 进入独立 GC 候选。
 
 `why owner/repo/package` 从 Lock graph 反向构造路径。
 
