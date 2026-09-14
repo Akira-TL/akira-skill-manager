@@ -56,6 +56,14 @@ Package Root 中可选、不可变的 `DEPENDENCIES.md`。它是 Package author 
 
 项目主动声明的顶层 GitHub install target，可以是 `<owner>/<repo>/<package>` 或 `<owner>/<repo>`；前者选择一个 Skill，后者选择 source snapshot 中全部发现的 Skill Package。
 
+## Project Intent
+
+项目在 `.agents/.akm/akm.toml [skills]` 中声明的允许范围与 source intent。它描述“项目允许什么”，不等于当前实际安装的 exact version/commit。
+
+## Confirmed Resolution
+
+项目已经明确接受并写入 `.agents/.akm/akm.lock` 的 exact repository snapshots、Package identities 与 dependency graph。普通 `sync` 只恢复已有 Confirmed Resolution；只有 initial resolution 或显式 update 在接受后才能替换它。
+
 ## Resolved Graph
 
 AKM 根据 Project Requirement、exact repository source snapshots、`SKILL.md` discovery 与可选 Manifest 求出的完整已知 dependency graph。没有 Manifest 的 Skill 是合法 leaf node。

@@ -33,6 +33,7 @@ Project state 的解析模型仍分三层，但文件统一放在 `.agents/.akm/
 - dependency edge 只写 `owner/repo/package`，不重复 exact version/commit；
 - Project Lock 不保存 `manifest-digest`、`dependencies-doc-digest` 或 `[[software]]`；Package `content-digest` 已覆盖 immutable payload；
 - `frozen` 比较解析后的 Requirement Set，不 hash `.agents/.akm/akm.toml` 原始 bytes；
+- 后续 ADR 0011 进一步固定 Project Intent / Confirmed Resolution 分离：已有匹配 Lock 的普通 `sync` 只恢复 exact Lock，不再重新求解或隐式改写；只有 initial resolution / 显式 update 在明确接受后才能产生新的 Confirmed Resolution；
 - Lock writer 使用 UTF-8、LF、无注释，并按 coordinate canonical 排序。
 
 ## 结果

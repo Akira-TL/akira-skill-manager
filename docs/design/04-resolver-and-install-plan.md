@@ -156,15 +156,20 @@ Git source 下，如果一个有 Manifest 的 Skill 声明同 repository sibling
 
 ## 7. Version resolution
 
-普通 Release `sync`：
+Version resolver 只在 initial resolution 或显式 resolution-changing operation（例如 `update`）中运行；**已有匹配 Lock 的普通 `sync` 不运行版本求解器**。
+
+Release resolution：
 
 1. 只枚举可规范化为 SemVer 的 GitHub Release；
 2. `vX.Y.Z` 与 `X.Y.Z` 规范化为同一版本；规范化后重复则报告 `AmbiguousReleaseVersion`；
-3. previous Lock 的 exact Release version/tag/commit 仍满足全部 repository ranges 且没有发生 retarget 时优先保留；
-4. 否则选择满足全部约束的最高 compatible stable Release；
+3. 合并作用于同一 repository 的全部 Release ranges；
+4. 按 #7 最终确定的选择策略产生 candidate Release；
 5. prerelease 只有显式允许时参与；
-6. 选中的 Release tag 必须解析到 exact commit，并且该 snapshot 必须能 discovery 到所需 `SKILL.md.name`；
-7. 如果 previous Lock 中同一 tag 的 commit 与当前解析结果不同，报告 `ReleaseRetargeted`，普通 `sync` 不自动漂移。
+6. candidate Release tag 必须解析到 exact commit，并且该 snapshot 必须能 discovery 到所需 `SKILL.md.name`；
+7. 若当前已有 Confirmed Resolution，resolver 输出 candidate 与旧 Lock 的差异，但在显式接受前不修改 Lock 或 activation；
+8. 如果旧 Lock 中同一 Release tag 的 commit 与当前远端解析不同，报告 `ReleaseRetargeted`，不能把 retarget 当成普通升级自动接受。
+
+Git ref 同理：Manifest/Project Intent 可以保存 `main` 等 requested ref，但已有 Lock 固定的是 exact commit；只有 initial resolution 或显式 update 才重新解析 ref。
 
 如果 Package 没有 Manifest，不产生新的 transitive version constraints。
 
@@ -309,29 +314,47 @@ warnings:
 
 ## 13. 执行顺序
 
+### 已有匹配 Lock 的 `sync`
+
 ```text
-parse target/project manifest
-  -> choose release or explicit git source
-  -> obtain exact repository snapshot
-  -> discover SKILL.md roots
-  -> select requested package(s)
-  -> read optional AKM metadata
-  -> expand dependency closure
-  -> build complete plan
-  -> materialize canonical Package Snapshots
-  -> compute/verify AKM-PACKAGE-V1 content-digest
-  -> reuse or atomically put content-addressed immutable Store entry
+parse Project Intent
+  -> verify Requirement Set matches Confirmed Resolution
+  -> read exact repositories/packages/edges from Lock
+  -> obtain only the exact locked source/content needed for restore
+  -> verify/materialize immutable Store entries
   -> preflight flat .agents/skills activation names
-  -> resolve explicit rename/abort decisions before project writes
   -> reconcile .agents/skills + .agents/.akm/activation.lock
   -> run common probes
   -> update .agents/.akm/dependencies.lock
-  -> write .agents/.akm/akm.lock atomically
 ```
+
+不调用版本选择器，也不产生新的 Lock。
+
+### Initial resolution / explicit `update`
+
+```text
+parse Project Intent
+  -> resolve release / explicit git sources
+  -> obtain candidate exact repository snapshots
+  -> discover SKILL.md roots
+  -> read optional Package metadata
+  -> expand dependency closure
+  -> build candidate resolution + activation plan
+  -> compute/verify canonical Package Snapshots
+  -> show candidate or diff against current Confirmed Resolution
+  -> explicit accept
+  -> atomically materialize/reconcile Store + activation
+  -> atomically write new .agents/.akm/akm.lock
+  -> run/update dependency observations
+```
+
+若 candidate 未被接受，不修改原 Lock 或现有 activation。
 
 ## 14. Frozen / offline
 
-`frozen`：先比较当前 `.agents/.akm/akm.toml [skills]` 解析后的 canonical Requirement Set 与 Lock 中 `[[requirement]]`；不一致返回 `FrozenRequirementMismatch`。一致时只接受 Lock 的 exact source snapshot、package-root、content digest 和 graph，不重新选择；`[renames]` 由 activation reconciliation 单独应用。
+`frozen`：要求 Lock 已存在，并比较当前 Project Intent 的 canonical Requirement Set 与 Lock 中 `[[requirement]]`。Lock 缺失或语义不一致时直接失败；一致时只接受 Lock 的 exact source snapshot、package-root、content digest 和 graph，永不创建/更新 Lock。`[renames]` 由 activation reconciliation 单独应用。
+
+普通 `sync` 在“已有且匹配 Lock”时同样 lock-preserving；Frozen mode 的额外约束是禁止 initial resolution 和任何新 Confirmed Resolution 的接受路径。
 
 `offline`：不访问 GitHub、不 fetch Git；只能使用本地 cache/Store 与 Lock。
 
@@ -357,6 +380,7 @@ parse target/project manifest
 - `InvalidOptionalManifest`；
 - `DependencyCycle`；
 - `RepositorySourceConflict`；
+- `ProjectIntentLockMismatch`；
 - `FrozenRequirementMismatch`；
 - `UnsupportedPackageFileType`；
 - `InvalidPackagePath`；

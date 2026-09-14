@@ -229,40 +229,52 @@ package:
 
 Canonical ordering 用于稳定 Git diff 和 deterministic generation；Lock 语义仍由解析后的 TOML 数据决定。
 
-## 7. `frozen`
+## 7. Project Intent 与 Confirmed Resolution
 
-`frozen` 先把当前 `.agents/.akm/akm.toml` 的 `[skills]` 解析成 canonical Requirement Set，再与 Lock 中 `[[requirement]]` 比较。`[renames]` 属于 activation intent，不参与 repository/package resolution；它由 activation reconciliation 单独校验。
-
-语义不同返回：
+Project Manifest 与 Lock 不再只是“输入文件 / resolver cache”的关系，而是两个不同状态：
 
 ```text
-FrozenRequirementMismatch
+.agents/.akm/akm.toml [skills]
+= Project Intent
+= 项目允许什么
+
+.agents/.akm/akm.lock
+= Confirmed Resolution
+= 项目已经明确接受什么 exact result
 ```
 
-语义相同则不重新选择版本/ref，只验证 Lock 中 exact repository source、Package Root、Package Content Digest 和 dependency graph。
+完整决定见 [ADR 0011](../adr/0011-intent-confirmed-resolution.md)。
 
-因此 `frozen` 不因 `akm.toml` 注释或排版变化失败。
+## 8. `sync` / `update` / `frozen`
 
-## 8. `sync` / `update`
+### `sync`
 
-普通 `sync`：
+Lock 已存在时，普通 `sync` 只恢复/校验 Confirmed Resolution：
 
 ```text
-parse .agents/.akm/akm.toml
-  -> compare previous Requirement Set
-  -> reuse still-valid previous repository resolution when possible
-  -> resolve changed/new requirements
-  -> build exact repository graph
-  -> discover/resolve Packages
-  -> materialize/verify Package Snapshots
+parse Project Intent
+  -> compare Lock Requirement Set
+  -> mismatch: ProjectIntentLockMismatch
+  -> match: use exact locked repositories/packages/edges
+  -> materialize/verify Store entries
   -> preflight flat activation names + apply explicit [renames]
   -> reconcile .agents/skills and .agents/.akm/activation.lock
-  -> atomically rewrite canonical .agents/.akm/akm.lock
+  -> run dependency observations
 ```
 
-Release retargeting仍按已有规则处理：previous Lock 中同一个 Release tag 的 exact commit 若与当前 GitHub 解析不同，普通 `sync` 返回 `ReleaseRetargeted`，不静默漂移。
+`sync` 不枚举更新的 compatible Release、不让 Git ref 前进、不重新求解 dependency graph，也不因为 ordinary sync 改写成另一份 Lock。
 
-显式 `update` 才允许主动重新选择满足 requirement 的较新 Release 或接受用户明确要求的新 source snapshot。
+如果没有 Lock，可以进入 initial resolution，但 exact candidate 必须在被显式接受后才成为正式 Lock；非交互实现不得把普通同步本身视为隐式接受。
+
+### `update`
+
+显式 `update` 才允许重新求解当前 Project Intent。它必须先形成 candidate resolution，并展示相对当前 Confirmed Resolution 的 source/version/commit/graph/content 变化；只有在用户或显式自动化策略接受后，才原子写入新 Lock 并按它 reconciliation。
+
+### `frozen`
+
+Frozen mode 要求已有且完全匹配的 Confirmed Resolution：Lock 缺失、Requirement Set 不一致或 locked graph 无法恢复都直接失败；它永不创建或更新 Lock。`[renames]` 仍属于 activation intent，由 activation reconciliation 单独处理。
+
+`akm.toml` 注释、空白或等价 TOML 排版不会造成 Requirement Set 差异。
 
 ## 9. Project Skill Activation
 

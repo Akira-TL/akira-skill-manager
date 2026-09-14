@@ -44,7 +44,7 @@
 - Package Store 直接以 `content-digest` 寻址并跨来源去重；Package payload 机器级共享且 immutable；
 - AKM 项目状态统一位于 `.agents/.akm/`：`akm.toml`、`akm.lock`、`activation.lock`、`dependencies.lock`；
 - `.agents/.akm/akm.toml` 保存 top-level requirements，Release 用 version string，Git 用 `{ git = "<ref>" }`；用户批准的本地 Skill rename 写入 `[renames]`；同一 repository 不允许混用多个 Git ref 或 Release/Git source；
-- `.agents/.akm/akm.lock` 采用 canonical `requirement -> repository -> package` 三层结构，source provenance 只写一次，Package Record 只保存 `package-root`、`content-digest` 与 exact dependency edges；
+- `.agents/.akm/akm.lock` 采用 canonical `requirement -> repository -> package` 三层结构，source provenance 只写一次，Package Record 只保存 `package-root`、`content-digest` 与 exact dependency edges；Project Intent（允许范围）与 Confirmed Resolution（已接受 exact result）严格分离：已有匹配 Lock 的普通 `sync` 只恢复 Lock，只有 initial resolution / 显式 `update` 在明确接受后才能写入新的 Lock；
 - `.agents/.akm/activation.lock` 只保存 `activation-name`、Package coordinate、`content-digest` 与 `mode`（`symlink` / `junction` / `copy`）；POSIX 未 rename 优先 symlink，Windows 未 rename 优先 junction，rename 一律 copy；managed drift 默认 fail closed；
 - `.agents/.akm/dependencies.lock` 只保存当前机器 dependency observations，Package `content-digest` 是唯一 freshness anchor；Common software 每次 `sync` / `doctor` 重新只读 probe，Special dependency observation 由 Agent 管理；该文件可随时删除重建；
 - AKM 只基础探测少量常见软件，不负责自动安装/修复宿主依赖。
