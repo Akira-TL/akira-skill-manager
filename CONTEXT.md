@@ -26,7 +26,7 @@ Release source 中的版本作用域。`@version` 先选择 repository Release/t
 
 ## Repository Discovery Control
 
-Repository root 中可选的 `akm-repo.toml`。它只通过 repository-relative Package Root `include` / `exclude` 过滤 `SKILL.md` discovery 结果；没有该文件时默认全仓发现。它不定义 Package name、version 或 dependency，不能把没有合法 `SKILL.md` 的目录变成 Package。
+Repository root 中可选的 `akm-repo.toml`。它只通过 repository-relative Package Root `include` / `exclude` 过滤 `SKILL.md` discovery 结果；没有该文件时默认全仓发现。`exclude` 优先于 `include`；v0 pattern 只支持 literal、`*`、`**`、`?`。它不定义 Package name、version 或 dependency，不能把没有合法 `SKILL.md` 的目录变成 Package。不同名称的 nested Skill Roots 可以同时被发现；只有最终 Package Name 重复才构成歧义。
 
 ## Router Skill
 

@@ -1,46 +1,36 @@
-# Repository Discovery Control 工作草案
+# Repository Discovery Control
 
-状态：Working Draft
+状态：Accepted
 
-> 本文只提出 repository-level discovery control 的候选协议；在用户明确确认前不标记为 Accepted。
+对应 Wayfinder：#12 `Define repository-level Skill discovery control`
 
-## 1. 问题
+## 1. 决定
 
-AKM 已确定：合法 `SKILL.md` 是 Skill Package 的唯一最低准入条件。
+AKM 以合法 `SKILL.md` 作为 Skill Package 的唯一最低准入条件。Repository 默认对 exact source snapshot 中全部版本化 `SKILL.md` 做自动发现；仓库作者可以在 repository root 提供可选 `akm-repo.toml`，只用于过滤 discovery 范围。
 
-默认情况下，AKM 会在一个 exact repository snapshot 中发现所有合法 `SKILL.md`。这对普通仓库零配置可用，但下列仓库可能包含“形式上合法、实际上不希望被发布/安装”的 Skill：
+`akm-repo.toml` 不定义 Package name、version、dependencies，也不能把没有合法 `SKILL.md` 的目录变成 Package。
+
+## 2. 文件名与位置
+
+固定文件名：
 
 ```text
-repo/
-├── skills/
-│   ├── ask-matt/SKILL.md
-│   └── tdd/SKILL.md
-├── examples/
-│   └── demo-skill/SKILL.md
-├── tests/
-│   └── fixtures/fake-skill/SKILL.md
-└── docs/
-    └── example/SKILL.md
+akm-repo.toml
 ```
 
-仅靠 `SKILL.md.name` 无法可靠区分正式 Skill 与 example/fixture。AKM 不应通过硬编码 `examples/`、`tests/` 等目录名猜测，因为任意目录名都可能是作者真实 Package 布局。
-
-因此需要一个 **可选的 repository-level discovery control**。
-
-## 2. 候选文件：`akm-repo.toml`
-
-文件只在 repository root 识别：
+只在 repository root 识别：
 
 ```text
 repo/
 ├── akm-repo.toml       # optional
 ├── skills/
+├── examples/
 └── ...
 ```
 
-不用 `akm.toml`，因为该名称已经用于 Project Manifest；不用把它放进每个 Skill Root，因为 Package 的最低门槛仍然只有 `SKILL.md`。
+不用 `akm.toml`，因为该名称用于 Project Manifest；不用 `akm-workspace.toml`，避免与运行时 workspace / project environment 概念混淆。
 
-候选最小格式：
+## 3. 最小格式
 
 ```toml
 schema = 1
@@ -54,26 +44,24 @@ exclude = [
 ]
 ```
 
-`akm-repo.toml` 只控制 discovery scope，不定义 Package name、version、dependencies 或 Project requirements。
+字段只描述 repository-relative Package Root 路径过滤。
 
-## 3. 零配置仍是默认主路径
+## 4. 零配置主路径
 
-没有 `akm-repo.toml` 时：
+没有 `akm-repo.toml` 时等价于：
 
 ```text
 include = ["**"]
 exclude = []
 ```
 
-语义是扫描整个 exact source snapshot 中的合法 `SKILL.md`。
+也就是对整个 exact source snapshot 中的版本化 `SKILL.md` 做 discovery。
 
-因此普通第三方 Skill repository 完全不需要为了 AKM 增加任何文件。
+普通第三方 Skill repository 完全不需要增加 AKM 文件。
 
-存在 `akm-repo.toml` 时，它只缩小/明确 discovery 候选集合；不能让一个没有合法 `SKILL.md` 的目录变成 Package。
+## 5. Pattern 匹配对象
 
-## 4. Pattern 匹配对象
-
-`include` / `exclude` 匹配的是 **repository-relative Package Root path**，不是 `SKILL.md` 文件路径。
+`include` / `exclude` 匹配 **repository-relative Package Root path**，不是 `SKILL.md` 文件路径。
 
 例如：
 
@@ -81,43 +69,39 @@ exclude = []
 skills/engineering/ask-matt/SKILL.md
 ```
 
-Package Root path 是：
+匹配对象是：
 
 ```text
 skills/engineering/ask-matt
 ```
 
-所以：
+因此：
 
 ```toml
 [discovery]
 include = ["skills/**"]
 ```
 
-可以选中该 Package。
+可以选中该 Skill Root。
 
-这样配置与 Package 的目录语义一致，不需要作者写：
+## 6. Include / Exclude 语义
 
-```text
-skills/**/SKILL.md
-```
-
-## 5. Include / Exclude 语义
-
-候选规则：
+v0 固定规则：
 
 1. `include` 省略或为空时等价于 `["**"]`；
-2. 非空 `include`：candidate root 至少匹配一条才进入候选集合；
-3. `exclude` 默认空；
-4. `exclude` 命中始终优先于 `include`；
-5. pattern 统一相对 repository root；
-6. pattern 使用 `/` 作为路径分隔符，与宿主操作系统无关；
-7. v0 至少支持字面路径、`*`、`**`、`?`；字符类等更复杂语法是否进入 v0 可后定；
-8. 不允许绝对路径或 `..` 逃出 repository root。
+2. 非空 `include`：Package Root 至少匹配一条才进入候选集合；
+3. `exclude` 省略或为空时表示不排除任何候选；
+4. **`exclude` 优先于 `include`**；
+5. pattern 始终相对 repository root；
+6. path separator 始终使用 `/`，与宿主操作系统无关；
+7. v0 glob grammar 只支持：字面路径、`*`、`**`、`?`；
+8. v0 不支持字符类、brace expansion、extglob 或 pattern 内否定；
+9. 不允许 absolute path；
+10. 不允许 `..` 逃出 repository root。
 
-`exclude` 优先与 Cargo/uv 的 workspace 成员过滤惯例一致：一个路径即使被成员/include pattern 命中，也可以被显式排除。
+复杂排除统一写进独立 `exclude`，不在 pattern grammar 中再造第二套否定语义。
 
-## 6. Discovery 顺序
+## 7. Discovery 顺序
 
 统一流程：
 
@@ -127,75 +111,118 @@ exact repository snapshot
   -> enumerate versioned SKILL.md files
   -> derive Package Root paths
   -> apply include/exclude to Package Root paths
-  -> parse/validate SKILL.md
-  -> detect duplicate Package Name / nested selected roots
+  -> parse/validate selected SKILL.md files
+  -> detect duplicate Package Name
   -> select requested package(s)
 ```
 
-注意过滤发生在 Package validation 之前，但 pattern 不能“修复”非法 Skill：最终被选中的 root 仍必须满足标准 Agent Skill 约束。
+过滤发生在完整 Skill validation 前是为了避免无关 example/fixture 阻塞正式 Package discovery；但过滤不能“修复”被选中的非法 Skill。任何进入最终集合的 root 都必须满足 Agent Skills/AKM 的 Skill Root 校验。
 
-## 7. 重名 Package
+## 8. Package Name 与重名
 
-过滤后如果仍存在：
+Package Name 始终来自：
+
+```text
+SKILL.md.name
+```
+
+并要求：
+
+```text
+basename(Package Root) == SKILL.md.name
+```
+
+如果过滤后仍存在：
 
 ```text
 a/foo/SKILL.md     name: foo
 b/foo/SKILL.md     name: foo
 ```
 
-则 `owner/repo/foo` 仍然无法唯一解析，返回 `AmbiguousPackageDiscovery`。
+则 `owner/repo/foo` 无法唯一解析，返回 `AmbiguousPackageDiscovery`。
 
-`akm-repo.toml` 可以通过排除其中一个 root 消除歧义：
+作者可以使用 `exclude` 排除不希望参与发布/安装的那一个 root，但 AKM 不增加 `package-name -> path` 第二份映射。
 
-```toml
-[discovery]
-exclude = ["examples/foo"]
-```
+## 9. Nested Skill Roots 允许
 
-不增加 `package name -> path` 第二份映射；Package Name 始终以 `SKILL.md.name` 为唯一 source of truth。
-
-## 8. Nested Skill Roots
-
-候选：**过滤后不允许两个最终 Package Root 互相嵌套。**
+v0 **允许不同名称的 Package Root 互相嵌套**。
 
 例如：
 
 ```text
-skills/foo/SKILL.md
-skills/foo/examples/bar/SKILL.md
+skills/foo/SKILL.md                 name: foo
+skills/foo/examples/bar/SKILL.md    name: bar
 ```
 
-如果两者都进入最终 discovery set，则 repository-wide install 与 `foo` payload 边界都会产生歧义。
+如果两者都通过 discovery filter 且各自合法，则同时得到：
 
-作者可以通过 repository control 明确排除 example：
+```text
+owner/repo/foo
+owner/repo/bar
+```
+
+AKM 不因为目录嵌套自动选择浅层或深层，也不把嵌套本身当错误。
+
+真正的歧义仍然只按最终 Package Name 判断：若两个 selected root 都声明 `name: foo`，才返回 `AmbiguousPackageDiscovery`。
+
+如果 `bar` 只是 example/fixture，作者应通过：
 
 ```toml
 [discovery]
 exclude = ["skills/foo/examples/**"]
 ```
 
-如果没有配置而 snapshot 中出现嵌套合法 Skill Root，当前候选行为是返回明确的 `NestedPackageDiscovery`，而不是静默猜测哪个才是正式 Package。
+明确排除。
 
-这条仍是需要用户确认的 frontier 决策。
+### Snapshot 边界
 
-## 9. Release 与 Git 使用完全相同的 Discovery Control
+允许 nested Skill Root 不代表外层 Package 可以运行时依赖内层 Package。AKM 在 snapshot 一个 Skill Package 时仍需维护“一个 Package = 一个 Skill”的运行时边界；若外层目录中包含另一个已发现 Skill Root，该嵌套 Skill Root 必须作为独立 Package 处理，而不能因此形成隐式跨 Package 依赖。
 
-`akm-repo.toml` 属于 repository source snapshot，因此：
+具体 snapshot/extraction 规则由 Package Store / Artifact 协议继续约束。
+
+## 10. Release 与 Git 使用同一规则
+
+`akm-repo.toml` 属于 repository source snapshot：
 
 - GitHub Release source archive：读取该 Release snapshot 根目录中的 `akm-repo.toml`；
 - Git source：读取 exact commit 根目录中的 `akm-repo.toml`；
-- Git Source Cache 只负责取得 exact tree，不持有独立 discovery policy；
-- Lock 保存最终选中的 `package-root` 与 source snapshot，不复制整个 repository discovery config。
+- Git Source Cache 只负责取得 exact tree，不保存独立 discovery policy；
+- 同一 exact repository snapshot 无论从 Release archive 还是 Git source 获取，discovery 结果应一致。
 
-这样同一 commit/tag 无论通过 Release archive 还是 Git source materialize，discovery 结果应一致。
+Lock 保存最终的 `package-root`、Package Name 和 exact source snapshot，不需要复制完整 `akm-repo.toml` 内容；是否额外保存其 digest 留给 Lock canonical schema 决定。
 
-## 10. Package-specific AKM Asset
+## 11. Package-specific AKM Asset
 
-Package-specific Asset 已经明确知道目标 Package，因此 `akm-repo.toml` 不参与 Asset 内部 discovery。
+Package-specific AKM Asset 已经是单 Skill Artifact，不再运行 repository-wide discovery，因此 `akm-repo.toml` 不参与 Asset 内部 Package 发现。
 
-但 Release 的“有哪些正式 Package”若将来需要完全依赖 repository control，则 package-specific Asset 的枚举与 repository-wide install 仍需单独定义发布索引/metadata；v0 不应因为优化 Asset 路径而改变 source snapshot discovery 语义。
+但 repository-wide install 的正式 Package 集仍以 repository snapshot discovery 为准；优化 Asset 不能反向改变 repository discovery policy。
 
-## 11. 不在这个文件里放什么
+## 12. v0 只有一个 Discovery Set
+
+v0 不增加：
+
+```text
+default-members
+publish-members
+default packages
+publish packages
+```
+
+或其他第二套 Package 选集。
+
+语义保持：
+
+```text
+owner/repo/package@...
+→ 精确选择一个已发现 Package
+
+owner/repo@...
+→ 选择该 snapshot discovery 后的全部 Package
+```
+
+如果未来出现“默认安装子集”和“可发布全集”确实需要分离的实际案例，再另开协议扩展。
+
+## 13. 不属于本文件的职责
 
 `akm-repo.toml` v0 不承担：
 
@@ -209,36 +236,22 @@ Package-specific Asset 已经明确知道目标 Package，因此 `akm-repo.toml`
 - build/release script；
 - registry publisher identity。
 
-这些属于其他已有协议层或未来独立设计。
-
-## 12. 当前推荐
-
-当前推荐候选是：
+## 14. 最终 v0 契约
 
 ```text
 文件：akm-repo.toml
 位置：repository root
-默认：不存在 = 全仓 SKILL.md 自动发现
+是否必需：否
+无文件默认：全仓版本化 SKILL.md 自动发现
 作用：只过滤 Package Root discovery
 字段：schema + [discovery].include/exclude
+匹配对象：repository-relative Package Root
 优先级：exclude > include
-Package name：始终来自 SKILL.md.name
-Release/Git：共享同一 discovery 语义
+glob：literal + * + ** + ?
+Package name：SKILL.md.name
+nested roots：允许，只要最终 Package Name 不冲突
+第二套选集：无
+Release/Git：共享相同 discovery 语义
 ```
 
-该方案保持“零配置兼容普通 Skill repository”，同时为大型 monorepo 提供明确的发布边界。
-
-参考的成熟 workspace 配置先例：
-
-- Cargo Workspaces：`members` + `exclude`，支持 glob，`exclude` 用于从成员集合中排除路径：https://doc.rust-lang.org/cargo/reference/workspaces.html
-- uv Workspaces：`members` + `exclude`，二者都支持 glob，命中 `exclude` 的 Package 不进入 workspace：https://docs.astral.sh/uv/concepts/projects/workspaces/
-- npm Workspaces：root `package.json` 的 `workspaces` 使用路径/glob 声明 workspace locations：https://docs.npmjs.com/cli/v11/configuring-npm/package-json/
-
-AKM 只借鉴“仓库根控制成员范围”的机制，不继承这些生态的 package identity、lock 或依赖语义。
-
-## 13. 尚待确认
-
-1. repository control 文件最终是否命名为 `akm-repo.toml`；
-2. nested selected Skill Roots 是 hard error，还是定义自动优先规则；
-3. v0 glob grammar 是否只支持 `*` / `**` / `?`；
-4. 是否需要 `default` / `publish` 一类第二组选集，还是 v0 坚持只有一个 discovery set。
+这保持零配置第三方兼容，同时给大型 repository 一个明确、轻量且不会污染 Package identity 的 discovery 边界。
