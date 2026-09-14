@@ -59,6 +59,8 @@ Package Name == SKILL.md.name
 
 ## 3. Package discovery 只认 `SKILL.md`
 
+Repository 可以在根目录提供可选 `akm-repo.toml`，仅用 `include` / `exclude` 过滤哪些 Package Root 参与 discovery。没有该文件时默认扫描整个版本化 source snapshot。详见 [`repository-discovery.md`](repository-discovery.md)。
+
 ### Git source
 
 Git 模式不能假设 Package 位于 `skills/<name>` 或任何固定目录。
@@ -69,12 +71,14 @@ AKM 对 exact commit 的 **tracked Git tree** 枚举所有 `SKILL.md`：
 2. 解析 frontmatter `name`；
 3. 校验 `basename(root) == SKILL.md.name`；
 4. repository 内同一个 `SKILL.md.name` 只能对应一个 candidate；
-5. Package Root 不能彼此嵌套；
-6. `akm-package.toml` 存在时读取增强依赖元数据；
-7. `DEPENDENCIES.md` 存在时记录其 digest，并交给 Agent 做特殊依赖检查；
-8. 指定 package 时按 `SKILL.md.name` 匹配；
-9. 未指定 package 时选择全部合法 candidate；
-10. Lock 保存实际 `package-root`。
+5. 如果 root `akm-repo.toml` 存在，先按 repository-relative Package Root path 应用 `include` / `exclude`；
+6. 过滤后同一个 `SKILL.md.name` 仍只能对应一个 candidate；
+7. 过滤后 Package Root 若彼此嵌套，当前草案返回明确 discovery error；
+8. `akm-package.toml` 存在时读取增强依赖元数据；
+9. `DEPENDENCIES.md` 存在时记录其 digest，并交给 Agent 做特殊依赖检查；
+10. 指定 package 时按 `SKILL.md.name` 匹配；
+11. 未指定 package 时选择全部最终合法 candidate；
+12. Lock 保存实际 `package-root`。
 
 因此用户只需要知道：
 

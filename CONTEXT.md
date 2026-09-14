@@ -24,6 +24,10 @@ Release source 中的版本作用域。`@version` 先选择 repository Release/t
 
 机器级、可丢弃的 Git repository object cache，用于复用 clone/fetch 成本和读取 exact commit。项目不直接链接它；删除 cache 不破坏已经写入 Package Store 的 Package snapshot。
 
+## Repository Discovery Control
+
+Repository root 中可选的 `akm-repo.toml`。它只通过 repository-relative Package Root `include` / `exclude` 过滤 `SKILL.md` discovery 结果；没有该文件时默认全仓发现。它不定义 Package name、version 或 dependency，不能把没有合法 `SKILL.md` 的目录变成 Package。
+
 ## Router Skill
 
 负责指导 Agent 在一组能力之间路由的普通 Skill Package。AKM 不为 Router 定义特殊 Package 类型；若存在可选 Manifest，其 Skill dependencies 可以形成 Router 的自动安装闭包。

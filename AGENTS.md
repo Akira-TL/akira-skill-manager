@@ -23,6 +23,7 @@ Matt Engineering 使用 canonical workflow role 名称作为 GitHub label。映�
 - 一个 Skill Package 恰好对应一个标准 Agent Skill；Package Root 与 Skill Root 重合，Multi-Skill Package 不进入 v0。
 - 合法 `SKILL.md` 是唯一最低准入条件；`akm-package.toml` 与 `DEPENDENCIES.md` 都是可选增强文件，不得把普通第三方 Skill 降级成兼容特例。
 - Git source 使用机器级 disposable Source Cache；Package discovery 基于 exact repository snapshot 中的 `SKILL.md`，最终项目只链接 immutable Package Store，不直接引用 mutable checkout/cache。
+- Repository 默认零配置发现合法 `SKILL.md`；可选 root-level `akm-repo.toml` 只用于过滤 discovery 范围，不能定义或伪造 Package 身份。
 - 产品能力族通过 Router Skill + 可见 transitive Skill dependencies 形成，不通过 bundle Artifact 表达。
 - Project Skill Library 按 `<owner>/<repo>/<package>` 分层，不在 AKM 核心中扁平化同名 Skill；Skill discovery 交给 executor adapter/执行器。
 - 运行时共享能力必须显式写成 Skill dependency；不允许 Package 依赖 Package Root 外的 runtime 文件。

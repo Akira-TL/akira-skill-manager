@@ -98,13 +98,16 @@ Git checkout/package path **不能由安装坐标提前推出**。
 basename(package-root) == SKILL.md.name
 ```
 
-6. 如果同一个 `SKILL.md.name` 出现多个 candidate，报告 `AmbiguousPackageDiscovery`；
-7. Package Root 不允许互相嵌套；若出现嵌套 candidate，报告 repository layout error；
-8. 如果 `akm-package.toml` 存在，解析依赖增强信息；
-9. 如果 `DEPENDENCIES.md` 存在，记录其 digest；
-10. selector 存在时按 `SKILL.md.name` 匹配；
-11. selector 省略时选择全部合法 Package Roots；
-12. Lock 保存实际 repository-relative path。
+6. 如果 repository root 存在可选 `akm-repo.toml`，对 candidate 的 repository-relative Package Root path 应用 `include` / `exclude`；没有配置时等价于全量候选；
+7. 过滤后如果同一个 `SKILL.md.name` 出现多个 candidate，报告 `AmbiguousPackageDiscovery`；
+8. 过滤后 Package Root 若互相嵌套，当前草案报告 `NestedPackageDiscovery`，不自动选浅层或深层；
+9. 如果 `akm-package.toml` 存在，解析依赖增强信息；
+10. 如果 `DEPENDENCIES.md` 存在，记录其 digest；
+11. selector 存在时按 `SKILL.md.name` 匹配；
+12. selector 省略时选择全部最终合法 Package Roots；
+13. Lock 保存实际 repository-relative path。
+
+Repository-level discovery control 的完整候选语义见 [`repository-discovery.md`](repository-discovery.md)。
 
 例如：
 
@@ -270,6 +273,7 @@ warnings:
 ### Discovery
 
 - 每个 repository snapshot 发现哪些 `SKILL.md` roots；
+- root `akm-repo.toml`（若存在）的 include/exclude 过滤结果；
 - selector 最终匹配哪个 relative path；
 - 是否有重名/嵌套/非法 frontmatter。
 

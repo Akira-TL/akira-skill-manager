@@ -7,12 +7,13 @@
 设计文件：
 
 1. [`skill-package-layout.md`](skill-package-layout.md)
-2. [`01-package-manifest.md`](01-package-manifest.md)
-3. [`02-release-artifact.md`](02-release-artifact.md)
-4. [`03-project-manifest-lock.md`](03-project-manifest-lock.md)
-5. [`04-resolver-and-install-plan.md`](04-resolver-and-install-plan.md)
-6. [`05-software-dependencies.md`](05-software-dependencies.md)
-7. [`06-module-boundaries.md`](06-module-boundaries.md)
+2. [`repository-discovery.md`](repository-discovery.md)
+3. [`01-package-manifest.md`](01-package-manifest.md)
+4. [`02-release-artifact.md`](02-release-artifact.md)
+5. [`03-project-manifest-lock.md`](03-project-manifest-lock.md)
+6. [`04-resolver-and-install-plan.md`](04-resolver-and-install-plan.md)
+7. [`05-software-dependencies.md`](05-software-dependencies.md)
+8. [`06-module-boundaries.md`](06-module-boundaries.md)
 
 ## 已明确的 v0 方向
 
@@ -31,6 +32,7 @@
 - GitHub Release `@version` 对应 repository Release version；
 - Git source `@ref` 最终锁定 exact commit；
 - Git source 进入机器级 disposable source cache，再从 exact commit discovery/snapshot Skill Root；
+- repository 默认零配置扫描合法 `SKILL.md`；可选 root-level `akm-repo.toml` 作为 discovery include/exclude 过滤提案，不改变 `SKILL.md` 的准入地位；
 - Project Skill Library 按 `<owner>/<repo>/<package>` 分层，不由 AKM core 扁平化；
 - 同名 Skill 在 AKM library 层可以共存；最终 discovery 交给 executor adapter/执行器；
 - Package payload 机器级共享且 immutable；
@@ -82,7 +84,7 @@ v0 不提前引入：
 - GitHub Release tag/version 的严格命名规则；
 - Release source archive 与可选 AKM Asset 的优先级/完整性契约；
 - Git source 与 Release source 同 repo 混用是否完全禁止；
-- nested `SKILL.md` repository 的最终 discovery 规则；
+- `akm-repo.toml` 的最终命名、glob grammar 与 nested selected Skill Root 行为；
 - `.akm/dependencies.lock` 的最终字段与状态失效规则；
 - Project Skill Library 到不同 executor 的发现适配；
 - version range 的最终 grammar；

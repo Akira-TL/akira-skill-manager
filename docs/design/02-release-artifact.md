@@ -50,7 +50,9 @@ implement.akm.tar.gz
 
 ## 3. Package discovery
 
-无论 Release 源码归档还是 Git source，核心发现规则一致：
+无论 Release 源码归档还是 Git source，核心发现规则一致。Repository root 若存在可选 `akm-repo.toml`，必须从同一个 exact source snapshot 读取并应用其 discovery include/exclude；不存在则默认扫描全部合法 `SKILL.md`。详细语义见 [`repository-discovery.md`](repository-discovery.md)。
+
+核心发现规则：
 
 ```text
 tracked/versioned tree 中的 SKILL.md
@@ -85,7 +87,7 @@ owner/repo/ask-matt@1.4.0
 owner/repo@1.4.0
 ```
 
-则选择该版本快照中全部合法 Skill Package candidate。
+则选择该版本快照中经过 repository discovery control（若存在）过滤后的全部合法 Skill Package candidate。
 
 ## 4. Release version 的作用域
 
