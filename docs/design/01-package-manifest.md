@@ -1,5 +1,7 @@
 # Package Manifest v0 工作草案
 
+Schema 1 的进一步收敛候选见 [`package-manifest-schema.md`](package-manifest-schema.md)。在该候选 Accepted 前，本文件仍保留既有工作草案上下文。
+
 ## 1. 定位
 
 `akm-package.toml` 是 **可选的 AKM 增强元数据**，不是 Skill Package 的准入条件。

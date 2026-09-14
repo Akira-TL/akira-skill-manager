@@ -18,6 +18,7 @@
 10. [`project-activation.md`](project-activation.md)
 11. [`activation-runtime-state.md`](activation-runtime-state.md)
 12. [`dependency-runtime-state.md`](dependency-runtime-state.md)
+13. [`package-manifest-schema.md`](package-manifest-schema.md)
 
 ## 已明确的 v0 方向
 
