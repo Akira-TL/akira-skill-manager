@@ -132,6 +132,10 @@ AKM v0 不执行 destructive automatic Package Store GC。项目 remove 只移�
 
 在安装/同步前形成的 source 获取、Skill discovery、Package snapshot、Store 变化、`.agents/skills/` 扁平 activation preflight/rename 以及依赖检查计划。AKM 不把缺失宿主软件自动转换为系统安装动作。
 
+## Skiloom Public Namespace
+
+Skiloom v0 的公开 token 是 `skiloom`：CLI 为 `skiloom`，project state 位于 `.agents/.skiloom/`，Project Intent/Lock 为 `skiloom.toml` / `skiloom.lock`，Package/Repository optional metadata 为 `skiloom-package.toml` / `skiloom-repo.toml`，公开 Package Snapshot format identifier 为 `SKILOOM-PACKAGE-V1`。旧 `AKM / akm` 只属于 pre-standard working draft，不形成 v0 compatibility alias。
+
 ## Skiloom Core
 
 Skiloom 面向独立实现的最小互操作协议面，只标准化会改变 Package discovery、dependency graph、source resolution、Confirmed Resolution、Package Content Digest 或 activation ownership 的可观察语义；CLI UX、缓存/Store 物理布局、平台 materialization 优化与宿主探测实现不因 reference manager 采用而自动成为 Core。
