@@ -9,7 +9,7 @@ Project requirements
     ↓
 source resolution
     ↓
-Release archive / Git source cache
+Release repository snapshot / Git source cache
     ↓
 SKILL.md discovery
     ↓
@@ -57,8 +57,8 @@ Package 名称来自 `SKILL.md.name`，不依赖 Manifest。
 ```text
 available_releases(owner, repo)
 resolve_release(owner, repo, version) -> exact tag/commit
-fetch_source_archive(release)
-find_optional_package_asset(release, skill_name)
+resolve_release(owner, repo, normalized_semver) -> actual tag + exact commit + immutable signal
+fetch_repository_snapshot(owner, repo, exact_commit)
 ```
 
 ### Git source cache
@@ -86,7 +86,7 @@ discover_skills(tree) -> SkillPackageCandidates
 - 父目录 = Package Root；
 - basename == `SKILL.md.name`；
 - repository 内 Skill name 唯一；
-- nested Skill Roots 按当前 v0 规则拒绝；
+- nested Skill Roots 允许，只要最终 `SKILL.md.name` 不重复；
 - optional Manifest / `DEPENDENCIES.md` 只作为附加 metadata。
 
 把 discovery 从 source adapter 和 resolver 中独立出来，可以让 Release archive、Git cache、未来 Registry payload 共用同一套规则。
@@ -110,7 +110,7 @@ discover_skills(tree) -> SkillPackageCandidates
 返回纯数据计划：
 
 ```text
-release archives/assets to fetch
+release repository snapshots to obtain
 git cache entries to create/fetch
 package roots to snapshot
 store entries to reuse
@@ -121,9 +121,9 @@ special dependency docs requiring Agent inspection
 
 不包含宿主软件安装动作。
 
-## `artifacts`
+## `snapshots`
 
-职责：把 selected Package Root 变成 verified immutable snapshot。
+职责：把 selected Package Root 变成 verified immutable Package snapshot。
 
 ```text
 snapshot_and_verify(source_root) -> VerifiedPackageSnapshot
@@ -131,7 +131,7 @@ snapshot_and_verify(source_root) -> VerifiedPackageSnapshot
 
 至少负责：
 
-- safe archive/materialization；
+- safe source materialization；
 - `SKILL.md` 校验；
 - optional Manifest 校验；
 - optional `DEPENDENCIES.md` digest；

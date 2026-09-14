@@ -36,11 +36,9 @@ owner/repo/bar@^1.4
 
 如果 `foo` 与 `bar` 来自同一个 repository，则约束共同作用于 repository Release version。
 
-选定 Release 后，AKM 可以：
+Release resolver v0 只接受 SemVer GitHub Release，允许 tag 使用可选前导 `v`。例如 `1.4.0` 与 `v1.4.0` 都规范化为版本 `1.4.0`；如果两者同时存在则构成 `AmbiguousReleaseVersion`。
 
-1. 使用 package-specific AKM Asset（若存在）；或
-2. 下载该 Release/tag 对应 repository source archive；
-3. 从版本快照中按 `SKILL.md` discovery 找到 Package Root。
+选定 Release 后，AKM 记录实际 tag，并把 tag 解析为 exact commit；随后只从该 repository source snapshot 按 `SKILL.md` discovery 找到 Package Root。v0 不使用 package-specific AKM Release Asset。
 
 Package 没有 Manifest 时仍是合法 leaf Package，只是没有 AKM 可见的结构化 transitive dependency。
 
@@ -160,11 +158,13 @@ Git source 下，如果一个有 Manifest 的 Skill 声明同 repository sibling
 
 普通 Release `sync`：
 
-1. previous Lock 的 exact Release 仍满足全部 repository ranges 时优先保留；
-2. 否则枚举符合约束的 Release；
-3. 默认优先最高 compatible stable Release；
-4. prerelease 只有显式允许时参与；
-5. 选中的 Release snapshot 必须能 discovery 到所需 `SKILL.md.name`。
+1. 只枚举可规范化为 SemVer 的 GitHub Release；
+2. `vX.Y.Z` 与 `X.Y.Z` 规范化为同一版本；规范化后重复则报告 `AmbiguousReleaseVersion`；
+3. previous Lock 的 exact Release version/tag/commit 仍满足全部 repository ranges 且没有发生 retarget 时优先保留；
+4. 否则选择满足全部约束的最高 compatible stable Release；
+5. prerelease 只有显式允许时参与；
+6. 选中的 Release tag 必须解析到 exact commit，并且该 snapshot 必须能 discovery 到所需 `SKILL.md.name`；
+7. 如果 previous Lock 中同一 tag 的 commit 与当前解析结果不同，报告 `ReleaseRetargeted`，普通 `sync` 不自动漂移。
 
 如果 Package 没有 Manifest，不产生新的 transitive version constraints。
 
@@ -267,7 +267,7 @@ warnings:
 
 ### Source fetch
 
-- 哪些 Release archive/Asset 需要下载；
+- 哪些 Release repository source snapshot 需要取得；
 - 哪些 Git cache 需要 clone/fetch；
 - 哪些 Store snapshot 已存在可复用。
 
@@ -280,7 +280,7 @@ warnings:
 
 ### Verify
 
-- Release/Asset/Git source provenance；
+- Release/Git source provenance 与 exact commit；
 - archive/path safety；
 - `SKILL.md`；
 - optional `akm-package.toml`；
@@ -340,12 +340,14 @@ parse target/project manifest
 至少区分：
 
 - `UnavailableRelease`；
+- `AmbiguousReleaseVersion`；
+- `ReleaseRetargeted`；
 - `UnavailableGitRef`；
 - `PackageNotFound`；
 - `AmbiguousPackageDiscovery`；
 - `InvalidSkillMetadata`；
 - `InvalidOptionalManifest`；
 - `DependencyCycle`；
-- `ArtifactIntegrityMismatch`；
-- `UnsafeArtifact`；
+- `PackageContentDigestMismatch`；
+- `UnsafeSourceSnapshot`；
 - `OfflineSourceUnavailable`。

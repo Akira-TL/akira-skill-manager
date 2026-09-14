@@ -4,15 +4,16 @@ manifest-digest = "sha256:111111111111111111111111111111111111111111111111111111
 [[repository]]
 coordinate = "Akira-TL/matt-skills"
 source-kind = "github-release"
-release = "1.4.3"
+version = "1.4.3"
+tag = "v1.4.3"
 commit = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-source-digest = "sha256:2222222222222222222222222222222222222222222222222222222222222222"
+immutable = true
 
 [[package]]
 coordinate = "Akira-TL/matt-skills/ask-matt"
 name = "ask-matt"
 source-kind = "github-release"
-release = "1.4.3"
+version = "1.4.3"
 commit = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
 package-root = "skills/engineering/ask-matt"
 content-digest = "sha256:3333333333333333333333333333333333333333333333333333333333333333"
@@ -27,7 +28,7 @@ dependencies = [
 coordinate = "Akira-TL/matt-skills/implement"
 name = "implement"
 source-kind = "github-release"
-release = "1.4.3"
+version = "1.4.3"
 commit = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
 package-root = "skills/engineering/implement"
 content-digest = "sha256:6666666666666666666666666666666666666666666666666666666666666666"

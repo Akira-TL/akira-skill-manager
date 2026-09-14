@@ -178,7 +178,7 @@ exclude = ["skills/foo/examples/**"]
 
 允许 nested Skill Root 不代表外层 Package 可以运行时依赖内层 Package。AKM 在 snapshot 一个 Skill Package 时仍需维护“一个 Package = 一个 Skill”的运行时边界；若外层目录中包含另一个已发现 Skill Root，该嵌套 Skill Root 必须作为独立 Package 处理，而不能因此形成隐式跨 Package 依赖。
 
-具体 snapshot/extraction 规则由 Package Store / Artifact 协议继续约束。
+具体 snapshot/materialization 规则由 Package Store 协议继续约束。
 
 ## 10. Release 与 Git 使用同一规则
 
@@ -191,11 +191,16 @@ exclude = ["skills/foo/examples/**"]
 
 Lock 保存最终的 `package-root`、Package Name 和 exact source snapshot，不需要复制完整 `akm-repo.toml` 内容；是否额外保存其 digest 留给 Lock canonical schema 决定。
 
-## 11. Package-specific AKM Asset
+## 11. Release 与 Git 都只发现 Repository Snapshot
 
-Package-specific AKM Asset 已经是单 Skill Artifact，不再运行 repository-wide discovery，因此 `akm-repo.toml` 不参与 Asset 内部 Package 发现。
+v0 不存在 package-specific AKM Release Asset，因此 repository discovery 永远面对一个 exact repository snapshot：
 
-但 repository-wide install 的正式 Package 集仍以 repository snapshot discovery 为准；优化 Asset 不能反向改变 repository discovery policy。
+```text
+Release -> exact commit -> repository snapshot
+Git ref -> exact commit -> repository snapshot
+```
+
+两条 source path 从这里开始完全共享 discovery policy。
 
 ## 12. v0 只有一个 Discovery Set
 

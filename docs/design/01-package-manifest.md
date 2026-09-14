@@ -203,8 +203,8 @@ AKM 只负责基础发现与状态记录，不负责安装、升级、配置或�
 
 1. 必须存在合法 `SKILL.md`；
 2. Package Root basename 与 `SKILL.md.name` 一致；
-3. 一个 Package Root 不应包含另一个独立 Skill Root；
-4. Package runtime 不允许依赖 Root 外隐藏共享文件。
+3. 不同名称的 nested Skill Root 可以同时存在；嵌套本身不构成 Package validation error；
+4. Package runtime 不允许依赖 Root 外隐藏共享文件，也不能因为目录嵌套而把另一个已发现 Skill Package 当作隐式依赖。
 
 当 `akm-package.toml` 存在时，再额外校验：
 

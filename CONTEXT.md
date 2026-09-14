@@ -14,7 +14,7 @@ AKM v0 的 GitHub 分发坐标，形式为 `<owner>/<repo>/<package>@<version-or
 
 ## GitHub Release Version
 
-Release source 中的版本作用域。`@version` 先选择 repository Release/tag，再在对应 exact source snapshot 中 discovery 一个或多个 Skill Package。
+Release source 中的 repository 级版本作用域。v0 只接受 SemVer；GitHub tag 可以使用可选前导 `v`，例如 `v1.4.0` 规范化为 `1.4.0`。Release version 最终锁定实际 tag 与 exact commit，再在该 repository snapshot 中 discovery Skill Package。
 
 ## Git Source
 
@@ -32,9 +32,9 @@ Repository root 中可选的 `akm-repo.toml`。它只通过 repository-relative 
 
 负责指导 Agent 在一组能力之间路由的普通 Skill Package。AKM 不为 Router 定义特殊 Package 类型；若存在可选 Manifest，其 Skill dependencies 可以形成 Router 的自动安装闭包。
 
-## Release Artifact
+## Release Source Snapshot
 
-GitHub Release 对应的稳定 source snapshot，或作者额外提供的 AKM package-specific Asset。AKM 专用 Asset 是优化而非准入条件。
+GitHub SemVer Release 解析得到的 actual tag + exact commit 对应 repository snapshot。AKM v0 不定义 per-Skill Release Asset；Release 只负责稳定选择 source snapshot，Package discovery 与 Git source 共用同一管线。
 
 ## Package Manifest
 
@@ -62,7 +62,7 @@ AKM 根据 Project Requirement、exact repository source snapshots、`SKILL.md` 
 
 ## Lock Record
 
-一个已解析 Package 的可重建记录，保存 exact repository source、actual package-root、`SKILL.md.name`、content integrity 和可选 manifest-declared dependency edges。
+一个已解析 Package 的可重建记录，保存 exact repository source、actual package-root、`SKILL.md.name`、content integrity 和可选 manifest-declared dependency edges。Release source 额外保存规范化 SemVer、实际 tag、exact commit 与 immutable signal；source archive bytes 不是长期 identity。
 
 ## Package Store
 

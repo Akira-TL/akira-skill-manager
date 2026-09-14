@@ -74,15 +74,16 @@ manifest-digest = "sha256:..."
 [[repository]]
 coordinate = "Akira-TL/matt-skills"
 source-kind = "github-release"
-release = "1.4.3"
+version = "1.4.3"
+tag = "v1.4.3"
 commit = "abcdef0123456789..."
-source-digest = "sha256:..."
+immutable = true
 
 [[package]]
 coordinate = "Akira-TL/matt-skills/ask-matt"
 name = "ask-matt"
 source-kind = "github-release"
-release = "1.4.3"
+version = "1.4.3"
 package-root = "skills/engineering/ask-matt"
 content-digest = "sha256:..."
 manifest-digest = "sha256:..."
@@ -158,6 +159,7 @@ Package leaf 直接链接完整 immutable Skill Root。AKM 不修改 Package 文
 可提交、可移植，保存：
 
 - exact repository source snapshot；
+- Release source 的规范化 SemVer、实际 tag、exact commit 与 immutable signal；
 - actual package-root；
 - `SKILL.md.name`；
 - content digest；
@@ -178,7 +180,7 @@ Package leaf 直接链接完整 immutable Skill Root。AKM 不修改 Package 文
 ```text
 read akm.toml + previous lock
   -> keep still-valid exact repository snapshots when possible
-  -> resolve/fetch release source or explicit Git source cache
+  -> resolve SemVer Release -> actual tag -> exact commit，或解析 explicit Git source ref -> exact commit
   -> discover SKILL.md Package Roots
   -> read optional manifests
   -> resolve dependency closure
@@ -196,3 +198,9 @@ read akm.toml + previous lock
 不再可达的 Package 从 Project Skill Library 移除；machine Store 内容由单独 GC 策略处理。Git source cache 也独立 GC，因为项目不直接引用 cache。
 
 Reverse Dependency 直接由 `akm.lock` 中 dependency edges 推导。
+
+## 11. Release retargeting
+
+如果 previous Lock 已记录某个 Release tag 对应 exact commit，而当前 GitHub 上同一 tag 已指向不同 commit，普通 `sync` 返回 `ReleaseRetargeted`，不得自动重写 Lock。
+
+`frozen` 只使用 Lock 中的 exact commit；显式 update/重新解析才允许接受新的 source snapshot。

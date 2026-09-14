@@ -20,7 +20,7 @@
 - GitHub 是首个直接分发坐标系，不先建设独立 Registry；
 - 用户安装目标使用 `<owner>/<repo>[/<package>]@<version-or-ref>`；
 - 默认优先使用 GitHub Release；没有 Release 或明确要源码版本时显式进入 Git source；
-- Release 不要求仓库作者提供 AKM 专用 Asset，源码归档即可 discovery；AKM Asset 只是可选优化；
+- Release 只负责通过规范化 SemVer 选择 repository snapshot；v0 不定义 AKM 专用 per-Skill Release Asset；
 - 一个 Skill Package 恰好包含一个 Skill；
 - Package Root 与 Skill Root 重合；
 - **唯一最低准入条件是合法 `SKILL.md`**；
@@ -29,7 +29,7 @@
 - Multi-Skill Package 不进入 v0；
 - Router 是普通 Skill，能力族由 Router + 可见 dependency closure 形成；
 - 运行时共享能力必须写成 dependency，不允许跨 Package hidden shared files；
-- GitHub Release `@version` 对应 repository Release version；
+- GitHub Release `@version` 只接受 SemVer，tag 允许可选前导 `v`，最终锁定实际 tag + exact commit；
 - Git source `@ref` 最终锁定 exact commit；
 - Git source 进入机器级 disposable source cache，再从 exact commit discovery/snapshot Skill Root；
 - repository 默认零配置扫描合法 `SKILL.md`；可选 root-level `akm-repo.toml` 只过滤 discovery 范围，不改变 `SKILL.md` 的准入地位；`exclude` 优先于 `include`，v0 glob 只支持 literal / `*` / `**` / `?`；
@@ -82,7 +82,7 @@ v0 不提前引入：
 ## 下一步仍需收敛
 
 - GitHub Release tag/version 的严格命名规则；
-- Release source archive 与可选 AKM Asset 的优先级/完整性契约；
+- Package content digest 的 canonical tree hash 算法；
 - Git source 与 Release source 同 repo 混用是否完全禁止；
 - `.akm/dependencies.lock` 的最终字段与状态失效规则；
 - Project Skill Library 到不同 executor 的发现适配；

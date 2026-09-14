@@ -30,7 +30,7 @@ skills/someone/other-repo/ask-matt/
 
 因此同名 Skill 不在 AKM core library 层构成冲突。最终执行器是否能同时发现、如何映射这些 Skill Root，由 executor adapter/执行器本身处理。
 
-同时 v0 不建立独立 Registry Package Identity；版本首先属于 GitHub repository Release。来自同一个 repository 的依赖约束会共同选择一个满足条件的 Release version，再从该 Release 中选 Package Artifact。
+同时 v0 不建立独立 Registry Package Identity；版本首先属于 GitHub repository Release。来自同一个 repository 的依赖约束会共同选择一个满足条件的 SemVer Release，再从该 Release 对应的 exact repository snapshot 中 discovery 所需 Skill Package。
 
 ## 当前方向
 

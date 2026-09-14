@@ -18,11 +18,11 @@ Matt Engineering 使用 canonical workflow role 名称作为 GitHub label。映�
 
 ## 当前设计边界
 
-- 先完成 Skill 本体目录/文件结构、Package Manifest、Release Artifact、Project Manifest/Lock、Dependency Resolver 与软件依赖模型的协议设计，再进入实现。
-- v0 使用 GitHub source model：安装目标采用 `<owner>/<repo>[/<package>]@<version-or-ref>`；默认优先从 GitHub Release 获取，没有合适 Release 或明确需要源码版本时才显式进入 Git source。
+- 先完成 Skill 本体目录/文件结构、Package Manifest、Release source、Project Manifest/Lock、Dependency Resolver 与软件依赖模型的协议设计，再进入实现。
+- v0 使用 GitHub source model：安装目标采用 `<owner>/<repo>[/<package>]@<version-or-ref>`；Release source 只接受 SemVer GitHub Release（tag 可选前导 `v`）并锁定 actual tag + exact commit；没有合适 Release 或明确需要源码版本时才显式进入 Git source。
 - 一个 Skill Package 恰好对应一个标准 Agent Skill；Package Root 与 Skill Root 重合，Multi-Skill Package 不进入 v0。
 - 合法 `SKILL.md` 是唯一最低准入条件；`akm-package.toml` 与 `DEPENDENCIES.md` 都是可选增强文件，不得把普通第三方 Skill 降级成兼容特例。
-- Git source 使用机器级 disposable Source Cache；Package discovery 基于 exact repository snapshot 中的 `SKILL.md`，最终项目只链接 immutable Package Store，不直接引用 mutable checkout/cache。
+- GitHub Release 不要求也不使用 AKM 专用 per-Skill Release Asset；Release/Git source 都先落到 exact repository snapshot，再基于 `SKILL.md` discovery；Git source 使用机器级 disposable Source Cache，项目最终只链接 immutable Package Store。
 - Repository 默认零配置发现合法 `SKILL.md`；可选 root-level `akm-repo.toml` 只用于过滤 discovery 范围，不能定义或伪造 Package 身份。
 - 产品能力族通过 Router Skill + 可见 transitive Skill dependencies 形成，不通过 bundle Artifact 表达。
 - Project Skill Library 按 `<owner>/<repo>/<package>` 分层，不在 AKM 核心中扁平化同名 Skill；Skill discovery 交给 executor adapter/执行器。

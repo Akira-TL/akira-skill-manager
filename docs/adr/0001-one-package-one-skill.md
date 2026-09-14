@@ -56,4 +56,4 @@ GitHub v0 不使用独立的 `namespace/package` Registry identity。完整安�
 - 安装一个 Package 只选择该 Skill Root，并在存在结构化 dependency metadata 时安装其 dependency closure；
 - 产品/Skill suite 由 Router + dependency closure 表达，不由 bundle Artifact 表达；
 - Package 内不允许通过 sibling/shared runtime 文件形成隐藏依赖；
-- GitHub Release 可以直接使用 repository source snapshot；AKM 专用 Package Asset 只是可选优化。
+- GitHub Release 直接选择 repository source snapshot；v0 不定义 AKM 专用 per-Skill Release Asset。

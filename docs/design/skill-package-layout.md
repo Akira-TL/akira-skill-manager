@@ -73,12 +73,13 @@ AKM 对 exact commit 的 **tracked Git tree** 枚举所有 `SKILL.md`：
 4. repository 内同一个 `SKILL.md.name` 只能对应一个 candidate；
 5. 如果 root `akm-repo.toml` 存在，先按 repository-relative Package Root path 应用 `include` / `exclude`；
 6. 过滤后同一个 `SKILL.md.name` 仍只能对应一个 candidate；
-7. 过滤后 Package Root 若彼此嵌套，当前草案返回明确 discovery error；
+7. 不同名称的 nested Package Root 可以同时存在；嵌套本身不构成 discovery error；
 8. `akm-package.toml` 存在时读取增强依赖元数据；
 9. `DEPENDENCIES.md` 存在时记录其 digest，并交给 Agent 做特殊依赖检查；
 10. 指定 package 时按 `SKILL.md.name` 匹配；
 11. 未指定 package 时选择全部最终合法 candidate；
-12. Lock 保存实际 `package-root`。
+12. 只有最终 Package Name 重复时返回 `AmbiguousPackageDiscovery`；
+13. Lock 保存实际 `package-root`。
 
 因此用户只需要知道：
 
@@ -96,7 +97,7 @@ repo/agent-tools/routers/ask-matt/SKILL.md
 
 ### Release source
 
-Release Artifact 内也只要求合法 `SKILL.md`。如果存在 Manifest/Dependency Check File，则作为增强信息读取，不存在也可安装。
+Release source 先把规范化 SemVer Release 解析为 actual tag + exact commit，再从该 repository snapshot 执行与 Git source 相同的 `SKILL.md` discovery。v0 不定义 per-Skill AKM Release Asset。
 
 ## 4. Release-first，Git source 显式启用
 
@@ -105,9 +106,13 @@ Release Artifact 内也只要求合法 `SKILL.md`。如果存在 Manifest/Depend
 ```text
 owner/repo[/package]@version
         ↓
-GitHub Release
+SemVer GitHub Release
         ↓
-Package Artifact
+actual tag + exact commit
+        ↓
+repository snapshot
+        ↓
+SKILL.md discovery
 ```
 
 没有 Release 或明确需要源码版本时，用户显式进入 Git source，例如：
