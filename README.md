@@ -1,6 +1,6 @@
-# AKM
+# Akira sKill Manager
 
-AKM 是一个面向 Agent Skill 的独立包管理器项目。它把 Skill 作为真正的软件包处理，而不是把 Git repository 当作安装单位。
+Akira sKill Manager（AKM）是一个面向 Agent Skill 的独立包管理器项目。它把 Skill 作为真正的软件包处理，而不是把 Git repository 当作安装单位。
 
 当前阶段优先固定领域模型和协议，不先实现 CLI。首批设计覆盖：
 
