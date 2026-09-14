@@ -289,26 +289,25 @@ materialize selected Package snapshot
 
 ## 12. Lock 关系
 
-Lock 至少保存：
+Lock 将 Package content identity 与 source provenance 重新关联，但不复制第二套 Package name/ref authority：
 
 ```text
-source provenance
-repository-relative package-root
-SKILL.md.name
-content-digest
+Repository Record
+  -> canonical repository coordinate
+  -> Release: normalized SemVer + actual tag + exact commit + immutable signal
+  -> Git: exact commit
+
+Requirement Record
+  -> top-level Release requirement 或 requested Git ref
+
+Package Record
+  -> full Package coordinate（末段即 SKILL.md.name）
+  -> repository-relative package-root
+  -> content-digest
+  -> resolved dependency edges
 ```
 
-其中：
-
-```text
-source provenance
-= Release SemVer/tag/exact commit 或 Git requested-ref/exact commit
-
-content-digest
-= canonical Package snapshot identity
-```
-
-`content-digest` 不包含 provenance，所以 Store 可以跨 repository/source 去重；Lock 将 content 与来源重新关联。
+Git requested ref 属于 Project Requirement semantics，不重复写入 Repository Record；Package name 已编码在 full Package coordinate 中，也不作为独立 Lock 字段。`content-digest` 不包含 provenance，所以 Store 可以跨 repository/source 去重；Lock 通过 `requirement -> repository -> package` 三层记录将 content 与来源重新关联。
 
 ## 13. 错误边界
 

@@ -192,7 +192,7 @@ exclude = ["skills/foo/examples/**"]
 - Git Source Cache 只负责取得 exact tree，不保存独立 discovery policy；
 - 同一 exact repository snapshot 无论从 Release archive 还是 Git source 获取，discovery 结果应一致。
 
-Lock 保存最终的 `package-root`、Package Name 和 exact source snapshot，不需要复制完整 `skiloom-repo.toml` 内容；是否额外保存其 digest 留给 Lock canonical schema 决定。
+Lock 通过 full Package coordinate 保存 Package Name，并保存最终 `package-root` 与 exact repository source provenance；不复制完整 `skiloom-repo.toml`，也不保存独立 discovery-control digest。Matching Confirmed Resolution replay 直接使用 locked package roots/graph/content digests，不重新运行 discovery；resolution-changing operation 则从 exact candidate source snapshot重新读取 discovery control。
 
 ## 11. Release 与 Git 都只发现 Repository Snapshot
 

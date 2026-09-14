@@ -154,13 +154,13 @@ note = "Target private repository is readable with the current identity."
 
 ## 7. Writer ownership 与 canonical output
 
-Skiloom Core 负责：
+声明支持 Host Observation Extension 的 Skiloom implementation / reference manager 负责：
 
 - Package state 的 `coordinate` / `content-digest`；
 - `[[package.software]]` probe records；
 - orphan / stale Package state 清理。
 
-Agent 负责：
+这些 writer responsibilities 不属于 Full Core P/R/A conformance。Agent 负责：
 
 - `[[package.special]]` observation records。
 
