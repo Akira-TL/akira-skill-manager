@@ -6,12 +6,13 @@
 
 设计文件：
 
-1. [`01-package-manifest.md`](01-package-manifest.md)
-2. [`02-release-artifact.md`](02-release-artifact.md)
-3. [`03-project-manifest-lock.md`](03-project-manifest-lock.md)
-4. [`04-resolver-and-install-plan.md`](04-resolver-and-install-plan.md)
-5. [`05-software-dependencies.md`](05-software-dependencies.md)
-6. [`06-module-boundaries.md`](06-module-boundaries.md)
+1. [`skill-package-layout.md`](skill-package-layout.md)
+2. [`01-package-manifest.md`](01-package-manifest.md)
+3. [`02-release-artifact.md`](02-release-artifact.md)
+4. [`03-project-manifest-lock.md`](03-project-manifest-lock.md)
+5. [`04-resolver-and-install-plan.md`](04-resolver-and-install-plan.md)
+6. [`05-software-dependencies.md`](05-software-dependencies.md)
+7. [`06-module-boundaries.md`](06-module-boundaries.md)
 
 ## 当前候选设计（未定稿）
 

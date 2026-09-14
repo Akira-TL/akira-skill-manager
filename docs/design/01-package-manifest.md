@@ -1,12 +1,12 @@
-# Package Manifest v0 设计
+# Package Manifest v0 工作草案
 
 ## 目标
 
-Package Manifest 是 AKM 的发行与依赖解析元数据，不替代 Agent Skills 的 `SKILL.md`。`SKILL.md` 继续定义 Agent 如何发现和执行 Skill；`akm-package.toml` 只定义“这个 Skill 作为软件包如何被版本化、依赖和校验”。
+Package Manifest 是 AKM 的发行与依赖解析元数据，不替代 Agent Skills 的 `SKILL.md`。`SKILL.md` 继续定义 Agent 如何发现和执行 Skill；`akm-package.toml` 只定义分发层元数据。当前字段和位置都属于 working draft，需与 `skill-package-layout.md` 一起收敛。
 
 ## 文件位置
 
-每个 Package 根目录必须同时存在：
+当前最强候选是 `skill-package-layout.md` 中的 Inline Skill Package。若采用该模型，一个原生 AKM Package Root 与 Skill Root 重合，并同时存在：
 
 ```text
 <package-root>/
@@ -18,7 +18,7 @@ Package Manifest 是 AKM 的发行与依赖解析元数据，不替代 Agent Ski
 └── ...
 ```
 
-Package 根目录本身必须是一个合法 Agent Skill directory，因此 Package Store 中的该目录可以直接成为项目软链接目标。
+这个布局的目标是让 Package Store 中的 Skill Root 可以直接成为项目软链接目标。若后续选择 multi-Skill wrapper 模型，本节结构和相关校验规则必须随之修改。
 
 ## 最小 Manifest
 
@@ -138,7 +138,7 @@ platforms = ["linux", "macos", "windows"]
 5. Skill dependency 不允许引用自身；
 6. 每条 Skill dependency 的 range 可解析；
 7. 每条 Software Requirement 的 ID 必须能在当前 Software Catalog 中识别，或明确进入 unsupported 状态；
-8. Package 内容中不存在第二个作为独立顶层 Skill 的 `SKILL.md`。
+8. 若最终采用普通 Package = one Skill Entry，则 Package 内容中不得再嵌套第二个可独立激活的 Skill Root。
 
 最后一条不是禁止 `references/` 中出现 Markdown，而是禁止一个 Package artifact 同时捆绑多个可独立激活的 Skill。
 
@@ -150,6 +150,6 @@ platforms = ["linux", "macos", "windows"]
 - dependency aliases；
 - post-install hooks；
 - Package 自定义安装脚本；
-- Package 内多 Skill Entry。
+- Package 内多 Skill Entry（当前由 `skill-package-layout.md` 继续比较，不视为已排除）。
 
 这些能力会显著扩大 resolver 与授权模型，只有出现真实用例后再设计。
