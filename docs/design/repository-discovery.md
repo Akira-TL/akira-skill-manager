@@ -176,9 +176,12 @@ exclude = ["skills/foo/examples/**"]
 
 ### Snapshot 边界
 
-允许 nested Skill Root 不代表外层 Package 可以运行时依赖内层 Package。AKM 在 snapshot 一个 Skill Package 时仍需维护“一个 Package = 一个 Skill”的运行时边界；若外层目录中包含另一个已发现 Skill Root，该嵌套 Skill Root 必须作为独立 Package 处理，而不能因此形成隐式跨 Package 依赖。
+允许 nested Skill Root 不代表外层 Package 可以运行时依赖内层 Package。AKM 在 materialize 一个 Package Snapshot 时维护“一个 Package = 一个 Skill”的边界：
 
-具体 snapshot/materialization 规则由 Package Store 协议继续约束。
+- 如果 nested Skill Root 已进入最终 discovery set，则从所有祖先 Package Snapshot 中裁掉并独立 snapshot；
+- 如果 nested `SKILL.md` 被 `akm-repo.toml` 排除，则它不是独立 Package Root，仍作为祖先 Package 的普通内容保留。
+
+因此独立 nested Skill 的内容变化不会改变祖先 Package Content Digest，也不会形成隐式跨 Package runtime dependency。完整规则见 [`package-snapshot-digest.md`](package-snapshot-digest.md)。
 
 ## 10. Release 与 Git 使用同一规则
 

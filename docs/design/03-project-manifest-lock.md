@@ -162,10 +162,12 @@ Package leaf 直接链接完整 immutable Skill Root。AKM 不修改 Package 文
 - Release source 的规范化 SemVer、实际 tag、exact commit 与 immutable signal；
 - actual package-root；
 - `SKILL.md.name`；
-- content digest；
+- `AKM-PACKAGE-V1` Package Content Digest；
 - optional Manifest/Dependency Check File digest；
 - exact manifest-declared Skill dependency edges；
 - optional structured common software requirements。
+
+`content-digest` 是选中 Package Snapshot 的内容身份，不是 source archive digest，也不包含 source provenance。它同时作为 Package Store key；完整 canonical 算法见 [`package-snapshot-digest.md`](package-snapshot-digest.md)。
 
 ### `.akm/dependencies.lock`
 
@@ -184,7 +186,7 @@ read akm.toml + previous lock
   -> discover SKILL.md Package Roots
   -> read optional manifests
   -> resolve dependency closure
-  -> snapshot missing Package Roots into Store
+  -> materialize canonical Package Snapshots，计算/验证 content-digest，并按 digest 写入/复用 Store
   -> rebuild Project Skill Library
   -> refresh common dependency observations
   -> invalidate stale special-dependency observations

@@ -60,13 +60,21 @@ Package Root 中可选、不可变的 `DEPENDENCIES.md`。它是 Package author 
 
 AKM 根据 Project Requirement、exact repository source snapshots、`SKILL.md` discovery 与可选 Manifest 求出的完整已知 dependency graph。没有 Manifest 的 Skill 是合法 leaf node。
 
+## Package Snapshot
+
+从一个已选 Skill Root materialize 出来的不可变 Package 内容边界。若其中包含另一个已经进入最终 discovery set 的 nested Skill Root，则该 nested Root 从祖先 Package Snapshot 中裁掉并独立 snapshot；被 discovery filter 排除的 nested `SKILL.md` 仍作为普通内容保留。
+
+## Package Content Digest
+
+Package Snapshot 的 canonical 内容身份。v0 使用 `AKM-PACKAGE-V1`：只允许 regular files，按 relative path 的原始 UTF-8 bytes 排序，只编码 path、executable bool、file size 与 exact bytes 的 SHA-256；时间戳、owner/group、普通权限和 archive metadata 不参与。最终表达为 `sha256:<64 lowercase hex>`。
+
 ## Lock Record
 
-一个已解析 Package 的可重建记录，保存 exact repository source、actual package-root、`SKILL.md.name`、content integrity 和可选 manifest-declared dependency edges。Release source 额外保存规范化 SemVer、实际 tag、exact commit 与 immutable signal；source archive bytes 不是长期 identity。
+一个已解析 Package 的可重建记录，保存 exact repository source、actual package-root、`SKILL.md.name`、Package Content Digest 和可选 manifest-declared dependency edges。Release source 额外保存规范化 SemVer、实际 tag、exact commit 与 immutable signal；source archive bytes 不是长期 identity。
 
 ## Package Store
 
-机器级共享的不可变 Skill Package snapshot 存储。多个项目可以复用同一 content；宿主环境检查状态不写回 Store。
+机器级共享的不可变 Skill Package Snapshot 存储，直接以 Package Content Digest 作为 key。不同 repository/source 只要 snapshot 内容完全相同就复用同一 Store entry；source provenance 保存在 Lock，不进入 Store key。宿主环境检查状态不写回 Store。
 
 ## Project Skill Library
 

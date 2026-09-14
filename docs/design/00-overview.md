@@ -14,6 +14,7 @@
 6. [`04-resolver-and-install-plan.md`](04-resolver-and-install-plan.md)
 7. [`05-software-dependencies.md`](05-software-dependencies.md)
 8. [`06-module-boundaries.md`](06-module-boundaries.md)
+9. [`package-snapshot-digest.md`](package-snapshot-digest.md)
 
 ## 已明确的 v0 方向
 
@@ -35,7 +36,8 @@
 - repository 默认零配置扫描合法 `SKILL.md`；可选 root-level `akm-repo.toml` 只过滤 discovery 范围，不改变 `SKILL.md` 的准入地位；`exclude` 优先于 `include`，v0 glob 只支持 literal / `*` / `**` / `?`；
 - Project Skill Library 按 `<owner>/<repo>/<package>` 分层，不由 AKM core 扁平化；
 - 同名 Skill 在 AKM library 层可以共存；最终 discovery 交给 executor adapter/执行器；
-- Package payload 机器级共享且 immutable；
+- Package snapshot 以 `AKM-PACKAGE-V1` canonical tree hash 计算 `content-digest`：独立 nested Skill 从祖先 snapshot 裁掉，v0 禁止 symlink/特殊文件，只保留 relative path、executable bit 与 exact bytes；
+- Package Store 直接以 `content-digest` 寻址并跨来源去重；Package payload 机器级共享且 immutable；
 - 当前宿主依赖状态单独写入 `.akm/dependencies.lock`，永不改 Package 文件；
 - AKM 只基础探测少量常见软件，不负责自动安装/修复宿主依赖。
 
@@ -81,8 +83,6 @@ v0 不提前引入：
 
 ## 下一步仍需收敛
 
-- GitHub Release tag/version 的严格命名规则；
-- Package content digest 的 canonical tree hash 算法；
 - Git source 与 Release source 同 repo 混用是否完全禁止；
 - `.akm/dependencies.lock` 的最终字段与状态失效规则；
 - Project Skill Library 到不同 executor 的发现适配；

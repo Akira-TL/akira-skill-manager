@@ -126,28 +126,40 @@ special dependency docs requiring Agent inspection
 职责：把 selected Package Root 变成 verified immutable Package snapshot。
 
 ```text
-snapshot_and_verify(source_root) -> VerifiedPackageSnapshot
+snapshot_and_verify(source_root, discovered_nested_roots) -> VerifiedPackageSnapshot
 ```
 
 至少负责：
 
-- safe source materialization；
+- 从祖先 Package snapshot 中裁掉已经独立 discovery 的 nested Skill Roots；
+- 拒绝 symlink、hardlink 与其他特殊文件；
+- 校验 portable relative UTF-8 path 与 Unicode case-fold collision；
+- 保留 executable bool 与 exact file bytes，不保留无关宿主 metadata；
 - `SKILL.md` 校验；
 - optional Manifest 校验；
 - optional `DEPENDENCIES.md` digest；
-- content digest。
+- 按 `AKM-PACKAGE-V1` 计算 canonical `content-digest`。
+
+完整算法见 [`package-snapshot-digest.md`](package-snapshot-digest.md)。
 
 ## `store`
 
-只保存 immutable Skill Package snapshot：
+只保存 content-addressed immutable Skill Package snapshot：
 
 ```text
-contains(digest)
-put(snapshot)
-get(digest)
+contains(content_digest)
+put_verified(snapshot, content_digest)
+get(content_digest)
+verify(content_digest)
 ```
 
-Source Cache 被删不会影响已经进入 Store 的 Package。
+逻辑 key：
+
+```text
+sha256/<64-hex-digest>
+```
+
+Store key 不含 GitHub owner/repo、Release、commit 或 package-root；这些 provenance 由 Lock 持有。不同来源的相同 Package snapshot 因此可以复用同一 Store entry。Source Cache 被删不会影响已经进入 Store 的 Package。
 
 ## `activation`
 

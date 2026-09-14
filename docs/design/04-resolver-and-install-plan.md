@@ -281,11 +281,14 @@ warnings:
 ### Verify
 
 - Release/Git source provenance 与 exact commit；
-- archive/path safety；
+- source materialization safety；
 - `SKILL.md`；
 - optional `akm-package.toml`；
 - optional `DEPENDENCIES.md`；
-- content digest。
+- Package Snapshot path/file-type portability；
+- independently discovered nested Skill Roots 已从祖先 snapshot 裁掉；
+- executable bool 来自 source snapshot Git mode；
+- `AKM-PACKAGE-V1` canonical `content-digest`。
 
 ### Activate
 
@@ -313,8 +316,9 @@ parse target/project manifest
   -> read optional AKM metadata
   -> expand dependency closure
   -> build complete plan
-  -> fetch/materialize selected roots
-  -> verify + put immutable Store
+  -> materialize canonical Package Snapshots
+  -> compute/verify AKM-PACKAGE-V1 content-digest
+  -> reuse or atomically put content-addressed immutable Store entry
   -> rebuild Project Skill Library
   -> run common probes
   -> update .akm/dependencies.lock
@@ -348,6 +352,10 @@ parse target/project manifest
 - `InvalidSkillMetadata`；
 - `InvalidOptionalManifest`；
 - `DependencyCycle`；
+- `UnsupportedPackageFileType`；
+- `InvalidPackagePath`；
+- `PackagePathCollision`；
 - `PackageContentDigestMismatch`；
+- `CorruptStoreEntry`；
 - `UnsafeSourceSnapshot`；
 - `OfflineSourceUnavailable`。
