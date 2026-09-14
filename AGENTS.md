@@ -19,8 +19,12 @@ Matt Engineering 使用 canonical workflow role 名称作为 GitHub label。映�
 ## 当前设计边界
 
 - 先完成 Skill 本体目录/文件结构、Package Manifest、Release Artifact、Project Manifest/Lock、Dependency Resolver 与软件依赖模型的协议设计，再进入实现。
-- Git repository、Package、Skill、Release、Project Environment 等概念必须分别建模；它们之间的基数关系仍需通过设计讨论确定。
-- `SKILL.md` 应尽量保持对 Agent Skills 既有标准的兼容；AKM 扩展元数据放在哪里、Package 是否允许一个或多个 Skill Entry，当前仍是开放设计问题。
+- v0 使用 GitHub source model：安装目标采用 `<owner>/<repo>[/<package>]@<version>`，默认从 GitHub Release 获取；Git clone 只能通过显式参数/source 配置启用。
+- 一个 Skill Package 恰好对应一个标准 Agent Skill；Package Root 与 Skill Root 重合，Multi-Skill Package 不进入 v0。
+- 产品能力族通过 Router Skill + transitive Skill dependencies 形成，不通过 bundle Artifact 表达。
+- Project Skill Library 按 `<owner>/<repo>/<package>` 分层，不在 AKM 核心中扁平化同名 Skill；Skill discovery 交给 executor adapter/执行器。
+- 运行时共享能力必须显式写成 Skill dependency；不允许 Package 依赖 Package Root 外的 runtime 文件。
+- 每个原生 Package 包含 `DEPENDENCIES.md`，用于 Agent 检查复杂软件/环境依赖；AKM 只对少量常见软件做基础只读探测，不负责自动修复宿主环境。
 - 旧 `/home/Akira/Projects/akira-skills` 仅作为迁移与既有行为参考，不在其中实现 AKM。
 
 ## 工程约定

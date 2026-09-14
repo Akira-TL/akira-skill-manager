@@ -1,155 +1,209 @@
 # Package Manifest v0 工作草案
 
-## 目标
+## 1. 目标
 
-Package Manifest 是 AKM 的发行与依赖解析元数据，不替代 Agent Skills 的 `SKILL.md`。`SKILL.md` 继续定义 Agent 如何发现和执行 Skill；`akm-package.toml` 只定义分发层元数据。当前字段和位置都属于 working draft，需与 `skill-package-layout.md` 一起收敛。
+`akm-package.toml` 只描述一个 Skill Package 在 AKM 中如何版本化、依赖其他 Skill Package，以及哪些常见软件可以由 AKM 做基础探测。
 
-## 文件位置
-
-当前最强候选是 `skill-package-layout.md` 中的 Inline Skill Package。若采用该模型，一个原生 AKM Package Root 与 Skill Root 重合，并同时存在：
+它不复制 `SKILL.md` 的 Agent routing metadata，也不声明 GitHub owner/repository；GitHub source context 来自安装坐标：
 
 ```text
-<package-root>/
-├── akm-package.toml
+<owner>/<repo>/<package>@<version>
+```
+
+## 2. 文件位置
+
+一个原生 AKM Package Root：
+
+```text
+<package-name>/
 ├── SKILL.md
-├── scripts/        # optional
-├── references/     # optional
-├── assets/         # optional
+├── akm-package.toml
+├── DEPENDENCIES.md
+├── scripts/                 # optional
+├── references/              # optional
+├── assets/                  # optional
 └── ...
 ```
 
-这个布局的目标是让 Package Store 中的 Skill Root 可以直接成为项目软链接目标。若后续选择 multi-Skill wrapper 模型，本节结构和相关校验规则必须随之修改。
+固定关系：
 
-## 最小 Manifest
+```text
+Package Root == Skill Root
+basename(Package Root) == SKILL.md.name == package.name
+```
+
+## 3. 最小 Manifest
 
 ```toml
 schema = 1
 
 [package]
-name = "akira/ask-matt"
+name = "ask-matt"
 version = "1.4.0"
-repository = "https://github.com/Akira-TL/matt-skills"
 
-[dependencies.skills]
-"akira/domain-modeling" = "^1.2.0"
-"akira/codebase-design" = "^1.3.0"
+[dependencies]
+"Akira-TL/matt-skills/implement" = "^1.4"
+"Akira-TL/matt-skills/wayfinder" = "^1.4"
+"Akira-TL/matt-skills/triage" = "^1.4"
 
-[dependencies.software]
+[software]
 git = ">=2.40"
+gh = ">=2.45"
 ```
 
-## 字段语义
+Package 没有 Skill dependency 或常见软件依赖时，对应 table 可以省略。
 
-### `schema`
+## 4. `schema`
 
-Manifest schema version。当前固定为整数 `1`。解析器遇到未知 schema 必须 fail closed，不做“尽量猜测”。
+```toml
+schema = 1
+```
 
-### `[package].name`
+表示 Manifest schema version。未知 schema 必须 fail closed。
 
-Package Identity，格式固定为：
+## 5. `[package]`
+
+### `name`
+
+只是在当前 GitHub repository 内定位 Package 的局部名称：
+
+```toml
+[package]
+name = "ask-matt"
+```
+
+它不是全局 Package ID。
+
+完整 GitHub 安装坐标由 source context 补齐：
 
 ```text
-<namespace>/<skill-name>
+Akira-TL/matt-skills/ask-matt@1.4.0
 ```
 
-v0 约束：
+v0 不提前引入 `namespace/package` 形式的独立 Registry identity。
 
-- `namespace`：小写 ASCII 字母、数字与 `-`；
-- `skill-name`：必须满足 Agent Skills specification 的 `name` 约束；
-- `skill-name` 必须与同目录 `SKILL.md` frontmatter 的 `name` 完全一致；
-- Package Identity 与 Git repository 无绑定关系。
+必须满足：
 
-### `[package].version`
-
-完整 Semantic Versioning 2.0.0 版本号。Release 后同一 `name + version` 的内容禁止变化。
-
-### `[package].repository`
-
-可选 provenance 字段，用于指向源码主页。它不产生 source trust，也不参与 Package Identity 判定。
-
-未来可增加 `homepage`、`license`、`authors` 等描述性字段，但不应让 Package Manifest 逐渐复制 `SKILL.md` 的 Agent routing metadata。
-
-## Skill 依赖
-
-`[dependencies.skills]` 的 key 是 Package Identity，value 是 version requirement：
-
-```toml
-[dependencies.skills]
-"akira/research" = "^2.1"
-"akira/literature" = ">=1.4 <2"
+```text
+package.name
+== basename(Package Root)
+== SKILL.md.name
 ```
 
-v0 采用 SemVer 2.0.0 版本值，并采用 npm 风格的显式 range 语义：
-
-- `1.2.3`：精确版本；
-- `^1.2.3`：兼容范围；
-- `~1.2.3`：patch 级兼容范围；
-- `>=1.2 <2`：比较器交集；
-- `>=1 <2 || >=3 <4`：范围并集；
-- `*`：任意稳定版本。
-
-部分版本如 `^2.1` 允许作为输入，并规范化为等价完整范围；lock 中只保存精确完整版本。
-
-Package Manifest 不允许：
-
-- `latest` 等动态 tag；
-- 在 dependency value 中嵌入 Git URL、HTTP URL、path 或 registry URL；
-- 使用 dependency alias 把另一个 Package Identity 冒充当前名字。
-
-先行版本默认不进入普通 stable range，除非 range 显式包含先行版本。
-
-## 软件依赖
-
-`[dependencies.software]` 的 key 是 Software Catalog 中的稳定能力 ID，value 是该能力自己的版本约束表达式：
+### `version`
 
 ```toml
-[dependencies.software]
+version = "1.4.0"
+```
+
+当前 GitHub Release 模式中，Package version 必须与它所属的 Release version 一致。这样：
+
+```text
+Akira-TL/matt-skills/ask-matt@1.4.0
+```
+
+可以直接解析 GitHub Release `1.4.0` 中的 `ask-matt` Artifact。
+
+如果以后建立独立 Registry，可以再允许 Package version 与 GitHub repository Release lifecycle 解耦；v0 不提前引入这层复杂度。
+
+Git `--git` 模式下，Lock 以 exact commit 为可重建依据；Manifest version 仍用于 dependency compatibility 判断，但 source ref 不必等于一个 GitHub Release。
+
+## 6. `[dependencies]`
+
+Skill dependency 使用与用户安装相同的 GitHub 坐标模型，只是版本范围单独作为 value：
+
+```toml
+[dependencies]
+"Akira-TL/matt-skills/implement" = "^1.4"
+"Akira-TL/skills/browser-access" = ">=2.0 <3"
+```
+
+规则：
+
+- dependency key 必须是 `<owner>/<repo>/<package>`，必须包含 package；
+- dependency 不允许写成 repository-wide target，因为依赖必须精确到一个 Skill Package；
+- dependency value 是允许的 Release version range；
+- 安装 dependency 时默认仍走 GitHub Release；
+- Git fallback 不静默发生，只有项目/source policy 明确允许 Git 模式时才使用；
+- transitive dependency 使用同样的语法递归解析。
+
+### Router
+
+Router 不需要特殊 Package type。
+
+例如 `ask-matt` 的 `SKILL.md` 负责告诉 Agent 什么时候使用 `implement`、`wayfinder`、`triage`；Package Manifest 只保证这些 Skill 被安装：
+
+```toml
+[dependencies]
+"Akira-TL/matt-skills/implement" = "^1.4"
+"Akira-TL/matt-skills/wayfinder" = "^1.4"
+"Akira-TL/matt-skills/triage" = "^1.4"
+```
+
+因此一个产品能力族由 Router + dependency closure 形成，不需要 bundle package。
+
+## 7. 版本范围
+
+v0 保留简单、常见的范围语义：
+
+- `1.4.0`：精确版本；
+- `^1.4` / `^1.4.0`：兼容范围；
+- `~1.4` / `~1.4.0`：patch 级兼容范围；
+- `>=1.4 <2`：比较器交集；
+- `>=1 <2 || >=3 <4`：并集；
+- `*`：任意稳定 Release。
+
+动态标签如 `latest` 不进入 Package Manifest；用户交互层以后可把 `latest` 解析成某个具体 Release，再写入 Lock。
+
+## 8. `[software]`
+
+这里只声明 **AKM 内建探测器能够基础检查的常见软件**：
+
+```toml
+[software]
 git = ">=2.40"
-github-cli = ">=2.50"
-python = ">=3.11,<3.14"
-samtools = ">=1.20"
+gh = ">=2.45"
+python = ">=3.11"
+node = ">=22"
 ```
 
-软件版本不强制全部使用 SemVer；每个能力的版本 scheme、探测方式和 Provider 映射由 Software Catalog 定义。
+这不是“AKM 负责安装的软件清单”。
 
-Package Manifest 不携带平台安装命令。
+AKM 对这些条目只负责：
 
-## Compatibility
+1. 使用内建只读 probe 查找；
+2. 尽可能读取版本；
+3. 判断 `present / missing / incompatible / unknown`；
+4. 把结果写入项目侧 `DEPENDENCIES.md` 状态区。
 
-v0 仅保留最小、可机械判断的 compatibility：
+AKM **不负责安装、升级、卸载或选择系统 package manager**。
 
-```toml
-[compatibility]
-platforms = ["linux", "macos", "windows"]
-```
+不常用、环境相关或无法机械表达的软件/硬件/服务要求写在 `DEPENDENCIES.md`，由 Agent 处理。
 
-未声明 `platforms` 表示 Package 自身不限制操作系统；最终是否可执行仍可能受 Software Requirements 约束。
+## 9. 不进入 Manifest 的内容
 
-暂不把具体 executor 名称写入基础协议。若某 Skill 只兼容特定 Agent 产品，应优先继续使用标准 `SKILL.md` 的 `compatibility` 文本表达；等出现稳定、可机械求解的 executor compatibility 需求后再扩展 Package Manifest。
+以下内容不写入 `akm-package.toml`：
 
-## 校验不变量
+- GitHub owner/repository：来自 source/install coordinate；
+- description：来自 `SKILL.md`；
+- Skill routing/invocation：来自 `SKILL.md`；
+- `router = true`：Router 是 Skill 行为，不改变 Package 安装语义；
+- release URL / asset URL：来自 GitHub Release 与 Lock；
+- Artifact SHA-256：由 Release/Lock 记录，不由 Package 自己为自己背书；
+- 特殊软件安装方案：写入 `DEPENDENCIES.md` 并由 Agent 判断；
+- multi-Skill entry：v0 不支持。
 
-打包、索引和安装前必须至少验证：
+## 10. 校验不变量
 
-1. `akm-package.toml` schema 已知；
-2. Package Identity 合法；
-3. Package Identity 末段与 `SKILL.md.name` 一致；
-4. version 是合法完整 SemVer；
-5. Skill dependency 不允许引用自身；
-6. 每条 Skill dependency 的 range 可解析；
-7. 每条 Software Requirement 的 ID 必须能在当前 Software Catalog 中识别，或明确进入 unsupported 状态；
-8. 若最终采用普通 Package = one Skill Entry，则 Package 内容中不得再嵌套第二个可独立激活的 Skill Root。
+Package discovery、Release build 和安装前至少验证：
 
-最后一条不是禁止 `references/` 中出现 Markdown，而是禁止一个 Package artifact 同时捆绑多个可独立激活的 Skill。
-
-## 暂不进入 v0 的能力
-
-- optional dependencies；
-- feature flags；
-- peer dependencies；
-- dependency aliases；
-- post-install hooks；
-- Package 自定义安装脚本；
-- Package 内多 Skill Entry（当前由 `skill-package-layout.md` 继续比较，不视为已排除）。
-
-这些能力会显著扩大 resolver 与授权模型，只有出现真实用例后再设计。
+1. `schema` 已知；
+2. `package.name` 合法；
+3. `package.name == Package Root basename == SKILL.md.name`；
+4. `package.version` 合法；
+5. Release 模式下 `package.version` 与目标 GitHub Release version 一致；
+6. dependency key 都是完整 `<owner>/<repo>/<package>`；
+7. dependency version range 可解析；
+8. Package 不依赖 Package Root 外的 runtime 文件；
+9. Package 内没有第二个可独立激活的 Skill Root；
+10. `DEPENDENCIES.md` 存在并符合 Agent dependency-check 文件格式。

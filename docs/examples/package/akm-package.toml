@@ -1,17 +1,14 @@
 schema = 1
 
 [package]
-name = "akira/ask-matt"
+name = "ask-matt"
 version = "1.4.0"
-repository = "https://github.com/Akira-TL/matt-skills"
 
-[dependencies.skills]
-"akira/domain-modeling" = "^1.2.0"
-"akira/codebase-design" = "^1.3.0"
+[dependencies]
+"Akira-TL/matt-skills/implement" = "^1.4"
+"Akira-TL/matt-skills/wayfinder" = "^1.4"
+"Akira-TL/matt-skills/triage" = "^1.4"
 
-[dependencies.software]
+[software]
 git = ">=2.40"
-github-cli = ">=2.50"
-
-[compatibility]
-platforms = ["linux", "macos", "windows"]
+gh = ">=2.45"

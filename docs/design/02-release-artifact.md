@@ -1,153 +1,244 @@
-# Release Artifact v0 设计
+# GitHub Release Artifact v0 工作草案
 
-## 目标
+## 1. 目标
 
-Release Artifact 是一个 Package Release 的不可变交付物。正常稳定安装面向 Release Artifact，而不是直接 checkout 整个 Git repository。
+AKM v0 的稳定分发入口直接使用 GitHub Release。
 
-一个 Git repository 可以发布多个 Package；每个 artifact 只对应一个 Package Identity 与一个精确版本。
-
-## v0 归档格式
-
-v0 选择 `tar.gz`，标准文件名：
+一个 repository Release 可以发布多个 Skill Package，但每个 Skill Package 都是独立 Artifact：
 
 ```text
-<namespace>--<skill-name>-<version>.akm.tar.gz
+Release 1.4.0
+├── ask-matt.akm.tar.gz
+├── implement.akm.tar.gz
+├── tdd.akm.tar.gz
+└── code-review.akm.tar.gz
+```
+
+安装：
+
+```text
+Akira-TL/matt-skills/ask-matt@1.4.0
+```
+
+只需要获取 `ask-matt.akm.tar.gz`，再按 Manifest dependency closure 获取其他 Artifact。
+
+安装：
+
+```text
+Akira-TL/matt-skills@1.4.0
+```
+
+则安装该 Release 中全部 `*.akm.tar.gz` Package Artifact。
+
+## 2. Artifact 文件名
+
+v0 使用：
+
+```text
+<package-name>.akm.tar.gz
 ```
 
 例如：
 
 ```text
-akira--ask-matt-1.4.0.akm.tar.gz
+ask-matt.akm.tar.gz
 ```
 
-选择原因：
+版本不重复写入 Artifact 文件名，因为 version 已由 GitHub Release 选定。
 
-- Linux/macOS/Windows 上均有成熟实现；
-- 可保留必要的 executable bit；
-- GitHub Release 对任意二进制 asset 都是自然承载；
-- 不要求宿主提前具备 zstd；
-- v0 的 Skill 内容以文本、小型脚本和资源为主，压缩率不是首要约束。
-
-压缩算法不是 Package Identity 的组成部分。未来可以引入新的 artifact encoding，但同一 Package Release 在一个 Package Index 记录中必须指向明确的 artifact 与 digest。
-
-## Artifact 内部布局
-
-归档解包后根目录就是 Skill directory，不额外增加 repository 层：
+AKM 校验：
 
 ```text
-akm-package.toml
+asset package name
+== akm-package.toml package.name
+== SKILL.md.name
+```
+
+## 3. Artifact 内部布局
+
+Archive root 直接就是 Package Root 内容，不额外套 wrapper：
+
+```text
 SKILL.md
+akm-package.toml
+DEPENDENCIES.md
 scripts/
 references/
 assets/
 ...
 ```
 
-因此 Package Store 中完成校验的解包目录可以直接作为 Project Skill View 的软链接目标。
+因此解包后的 snapshot 本身就是一个合法 Skill Package。
 
-## 安全与可移植性约束
+## 4. Release version 校验
 
-v0 artifact 只允许：
+假设用户请求：
 
-- 普通文件；
-- 目录。
+```text
+Akira-TL/matt-skills/ask-matt@1.4.0
+```
 
-v0 明确拒绝：
+AKM：
 
-- 归档内 symlink；
+1. 找到 repository Release `1.4.0`；
+2. 找到 `ask-matt.akm.tar.gz`；
+3. 解包读取 `akm-package.toml`；
+4. 要求 `package.name = "ask-matt"`；
+5. 要求 `package.version = "1.4.0"`；
+6. 要求 `SKILL.md.name = "ask-matt"`。
+
+任一不一致都拒绝安装。
+
+因此 GitHub v0 模式没有第二套隐藏 package version。
+
+## 5. Package discovery
+
+### Release 模式
+
+GitHub Release 中所有符合：
+
+```text
+<valid-package-name>.akm.tar.gz
+```
+
+的 asset 都是 AKM Package candidate。
+
+指定 package 时只查对应 asset。
+
+未指定 package 时枚举全部 candidate，逐个校验 Manifest 和 `SKILL.md` 后安装。
+
+Repository 的普通 Release asset，例如：
+
+```text
+source.zip
+manual.pdf
+screenshots.zip
+```
+
+不属于 AKM Package，不参与 discovery。
+
+### Git 模式
+
+显式 `--git` 时，不依赖 Release asset 名，而是在 checkout 中扫描同时含：
+
+```text
+SKILL.md
+akm-package.toml
+```
+
+的目录作为 Package Root。
+
+## 6. 归档格式
+
+v0 采用 `tar.gz`。
+
+原因：
+
+- 可保留 executable bit；
+- 各主要平台有成熟实现；
+- GitHub Release 可直接托管；
+- 不要求 zstd 等额外解压工具。
+
+未来可以增加其他 encoding，但同一 Release asset 必须有明确 encoding 与 integrity。
+
+## 7. 安全解包
+
+Artifact v0 只允许普通文件和目录。
+
+拒绝：
+
+- symlink；
 - hardlink；
 - device node；
 - FIFO；
 - absolute path；
-- 含 `..` 的路径逃逸；
-- 规范化后重复的路径；
-- 解包后指向 Package 根目录之外的内容。
+- `..` path traversal；
+- 规范化后重复路径；
+- 任何解包后逃出 Package Root 的内容。
 
-项目激活所需的 symlink 由 AKM 自己在 Package Store 与 Project Skill View 之间创建，不依赖 artifact 内预制 symlink。
+Package 运行时也不能依赖 repository 里的 sibling/shared 文件。
 
-## 完整性
+## 8. 完整性
 
-每个 Release Artifact 使用 SHA-256 作为 v0 必需完整性摘要：
-
-```text
-sha256:<64 hex chars>
-```
-
-digest 对下载到的原始归档字节计算。
-
-安装时至少执行：
-
-1. 获取 Package Index 中声明的 artifact locator、size 与 SHA-256；
-2. 下载到临时文件；
-3. 本地计算 SHA-256；
-4. digest 不一致则立即拒绝；
-5. 在隔离临时目录中执行安全解包；
-6. 读取并校验 `akm-package.toml`；
-7. 校验 Manifest 的 `name` / `version` 与正在安装的 Package Release 一致；
-8. 校验 `SKILL.md.name` 与 Package Identity 末段一致；
-9. 成功后以原子方式进入 Package Store。
-
-GitHub 当前 Release Asset API 自身提供 `digest` 字段，但 AKM 仍以 Package Index / Lock Record 中的 expected digest 为校验输入，并自行计算实际 digest。
-
-## 可重建打包
-
-发布工具应生成 deterministic archive，以减少同一内容在不同构建机产生不同 digest：
-
-- 文件路径按 UTF-8 byte order 排序；
-- uid/gid 归零；
-- user/group name 清空；
-- mtime 固定为发布输入的 `SOURCE_DATE_EPOCH`，缺失时使用 `0`；
-- directory mode 规范化为 `0755`；
-- executable regular file 规范化为 `0755`；
-- 其他 regular file 规范化为 `0644`；
-- gzip header 不写本地文件名，并固定时间戳。
-
-Release 发布流程必须从干净 source tree 生成 artifact；Package Manager 安装端只依赖 artifact digest，不假设发布者真的使用了 deterministic builder。
-
-## Package Index 映射
-
-Package Index 中一个 Release 至少需要提供：
+Artifact 下载后至少计算 SHA-256：
 
 ```text
-Package Identity
-Exact Version
-Artifact Locator
-SHA-256
-Artifact Size
-Manifest Metadata
-Yanked State
+sha256:<64-hex>
 ```
 
-GitHub Release adapter 可以把 locator 表示为：
+Lock 记录：
 
 ```text
-repository + release tag/id + asset id/name
+GitHub repository
+Release version/id
+asset name/id
+asset digest
+local SHA-256
 ```
 
-但 resolver 的核心接口不能依赖 GitHub 对象模型。
+如果 GitHub Release Asset metadata 提供 digest，AKM 应比较 GitHub metadata 与本地实际 digest。
 
-## Release 不可变性
+若未来发布流程需要更强的独立校验，可以在 Release 中增加 checksum/attestation asset；这不改变 Package Artifact 布局。
 
-如果 Package Index 已经记录：
+## 9. 安装流程
+
+指定 Package：
 
 ```text
-akira/ask-matt@1.4.0 -> sha256:AAA...
+owner/repo/package@version
 ```
 
-之后观察到同一 `name + version` 指向 `sha256:BBB...`，AKM 必须视为 supply metadata conflict 并 fail closed，不能把它当作普通更新。
+流程：
 
-修复后的内容必须发布新版本。
+```text
+resolve GitHub Release
+  -> find <package>.akm.tar.gz
+  -> download temp file
+  -> verify digest
+  -> safe extract
+  -> validate akm-package.toml
+  -> validate SKILL.md
+  -> validate DEPENDENCIES.md exists
+  -> insert immutable snapshot into machine Store
+  -> materialize project Skill Library leaf
+  -> run common dependency probes
+  -> update project-local DEPENDENCIES.md status
+```
 
-## Git 与 path 来源的统一处理
+## 10. Git fallback 不是 Release fallback
 
-Git/path 是开发与兼容 source，不直接改变 Package Store 的不可变语义。
+找不到：
 
-AKM 在使用 Git commit/subdir 或本地 path 时，应先把选中的 Package directory 规范化为同样的 Package snapshot，计算 content digest，再写入共享 Package Store。Lock Record 额外保留 Git commit 或 path provenance。
+```text
+owner/repo/package@version
+```
 
-这样“Release package”“Git package”“path package”在 Store 与 activation 以后共享同一模型；差异只保留在 source adapter 与 Lock provenance 中。
+对应 Release/asset 时，默认返回明确错误。
 
-## 签名
+只有显式：
 
-v0 必须有 SHA-256 integrity，但不在本阶段强制设计公钥签名协议。
+```text
+--git
+```
 
-Package Index 的签名、Sigstore provenance、GitHub artifact attestation 等可以作为后续独立信任层加入；当前接口必须预留“artifact integrity”和“publisher trust”是两个不同概念，避免未来把 hash 误当身份认证。
+或等价项目配置，才 clone repository 并走 Git Package discovery。
+
+这避免一次“稳定版安装”在用户不知道的情况下变成任意 branch checkout。
+
+## 11. Store
+
+机器 Store 保存已经验证的不可变 Package snapshot。
+
+Store 的内部目录可以内容寻址；它不需要复刻用户安装坐标层级。来源层级由 Lock 和 Project Skill Library 保存。
+
+例如：
+
+```text
+machine store:
+  sha256/<digest>/...
+
+project library:
+  .akm/skills/Akira-TL/matt-skills/ask-matt/...
+```
+
+Project leaf 允许把不可变 payload 以 symlink 形式复用，同时保留一个项目侧可写的 `DEPENDENCIES.md` 状态文件。

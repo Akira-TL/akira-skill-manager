@@ -1,68 +1,92 @@
-# v0 Module 边界
+# v0 Module 边界工作草案
 
-本文件只定义首阶段代码应形成的深 Module 与 seam，不提前设计 CLI。
+本文件只描述当前协议对应的候选代码 seam；协议未稳定前不进入实现。
 
 ## 总体数据流
 
 ```text
-Project files
+Project requirements
     ↓
 metadata
     ↓
-resolution ← package_index
+resolution ← GitHub Releases / explicit Git source
     ↓
-planning ← store / activation / software observations
+planning ← store / project skill library / common dependency observations
     ↓
-InstallPlan
-    ↓ approval
-artifacts → store → activation
-             ↘ software providers（后续）
+artifact fetch & verify
+    ↓
+store
+    ↓
+activation
+    ↓
+common dependency probes -> project-local DEPENDENCIES.md
 ```
+
+AKM 流程到依赖状态记录为止。特殊依赖后续由 Agent 读取 `DEPENDENCIES.md` 处理。
 
 ## `metadata`
 
 职责：
 
-- 解析、规范化和验证 `akm-package.toml`；
-- 解析、规范化和验证 `akm.toml`；
+- 解析 `akm-package.toml`；
+- 解析 `akm.toml`；
 - 读写 `akm.lock`；
-- 提供强类型 domain values：PackageIdentity、Version、VersionRequirement、SourceSpec、LockRecord、SoftwareRequirement。
+- 解析 GitHub install coordinate；
+- 解析 version requirement；
+- 校验 `package.name == Package Root basename == SKILL.md.name`。
 
-外部 Interface 应尽量小：
-
-```text
-load_package_manifest(path)
-load_project_manifest(path)
-load_lock(path)
-write_lock(path, lock)
-```
-
-TOML 细节不泄漏到 resolver。
-
-## `package_index`
-
-职责：为 resolver 提供“某 Package 有哪些版本、这些版本依赖什么、最终 artifact 在哪里”的只读 metadata。
-
-Interface：
+候选 domain values：
 
 ```text
-available_versions(package)
-manifest(package, version)
-artifact(package, version)
+GitHubRepository
+PackageName
+GitHubPackageCoordinate
+ReleaseVersion
+VersionRequirement
+PackageManifest
+ProjectRequirement
+LockRecord
+CommonSoftwareRequirement
 ```
 
-计划 Adapter：
+不再以 `PackageIdentity(namespace/package)` 作为 v0 核心类型。
 
-- InMemoryPackageIndex：测试；
-- StaticIndex：首阶段本地/HTTP index；
-- GitHubReleaseIndex：如果首阶段需要直接消费 GitHub Release；
-- future registry adapter。
+## `sources`
 
-resolver 不知道 HTTP、GitHub API 或 cache 细节。
+GitHub v0 需要两个 source adapter：
+
+### GitHub Release source
+
+```text
+available_releases(owner, repo)
+list_package_assets(owner, repo, release)
+fetch_package_manifest(owner, repo, release, package)
+fetch_asset(owner, repo, release, package)
+```
+
+### Git source
+
+只服务显式 Git 模式：
+
+```text
+checkout(owner, repo, ref) -> exact commit
+find_packages(checkout)
+snapshot(package_root)
+```
+
+未来 Registry 是新的 source adapter，不要求改造 GitHub coordinate 语义。
 
 ## `resolution`
 
-职责：把 Project Requirement 解析成唯一 exact Package Graph。
+职责：
+
+- 合并同一 GitHub repository 的 Release version constraints；
+- 选择 exact Release version；
+- 展开 `owner/repo/package` dependencies；
+- 处理 repository-wide top-level selection；
+- cycle detection；
+- previous Lock preference；
+- frozen validation。
 
 Interface：
 
@@ -71,141 +95,123 @@ resolve(request) -> Resolution
 validate_frozen(request, lock) -> Resolution
 ```
 
-Implementation 内部可以使用 PubGrub 或其他 solver；调用者只看到结构化 Resolution / ResolutionError。
-
-cycle detection、Skill name collision、source conflict 属于这个 Module，因为它们决定“这个 dependency graph 是否合法”。
+AKM core 不检查扁平 Skill name collision，因为 Project Skill Library 保留 `owner/repo/package` 层级。
 
 ## `planning`
 
-职责：比较 Resolution 与当前机器/项目状态，生成完整 InstallPlan。
-
-Interface：
+职责：比较 Resolution 与本地状态并返回：
 
 ```text
-plan(resolution, observations) -> InstallPlan
+artifacts to fetch
+store entries to reuse
+project library leaves to add/update/remove
+common software probes to run
+special dependency files that still require Agent inspection
 ```
 
-它不执行动作。
-
-这样测试可以在纯数据上断言：
-
-- 应下载什么；
-- 应保留什么；
-- 应增删哪些 activation link；
-- 缺哪些软件；
-- 哪些动作需要 approval。
+Planning 不包含宿主软件安装动作。
 
 ## `artifacts`
 
-职责：把一个已批准的 exact source 变成已验证 Package snapshot。
-
-Interface：
+职责：把 GitHub Release asset 或显式 Git Package Root 变成已验证 Package snapshot。
 
 ```text
-fetch_and_verify(package_source) -> VerifiedPackageSnapshot
+fetch_and_verify(source) -> VerifiedPackageSnapshot
 ```
 
 内部负责：
 
-- Release download；
-- Git exact commit checkout/snapshot；
-- path snapshot；
+- Release asset download；
+- Git exact commit snapshot；
 - SHA-256；
-- safe archive extraction；
-- Manifest / `SKILL.md` identity 校验。
-
-不同 source kind 是内部 Adapter，不把 source-specific 流程散到 planner/store。
+- safe tar extraction；
+- Package Manifest 校验；
+- `SKILL.md` 校验；
+- `DEPENDENCIES.md` 存在性校验。
 
 ## `store`
 
-职责：机器级不可变 Package content 的去重与查询。
-
-Interface：
+机器级 Store 只保存不可变 Package payload。
 
 ```text
 contains(digest)
-put(verified_snapshot) -> StoreEntry
-get(digest) -> StoreEntry
+put(snapshot)
+get(digest)
 ```
 
-逻辑 key 是 content digest，而不是 repository checkout path。
-
-Package Identity/version 到 digest 的便利索引可以存在，但不是内容真相来源。
+Store 内部可以 content-addressed；它不承担项目可见的 `owner/repo/package` 目录结构。
 
 ## `activation`
 
-职责：把 Lock/Resolution 映射成项目级 Skill symlink view。
+职责：根据 Lock 构建分层 Project Skill Library：
+
+```text
+.akm/skills/<owner>/<repo>/<package>/
+```
+
+Package leaf 是项目侧 activation overlay，而不是整个目录直接 symlink：
+
+```text
+SKILL.md            -> machine Store
+akm-package.toml    -> machine Store
+references          -> machine Store
+scripts             -> machine Store
+DEPENDENCIES.md     # project-local writable copy
+```
+
+这样共享 Store 仍然不可变，同时依赖检查状态可以按项目记录。
+
+executor adapter 如果需要把 Project Skill Library 转成某个执行器的 Skill discovery 结构，在 activation 之后工作；它不改变 core Package graph。
+
+## `dependency_checks`
+
+替代原来的 Software Catalog/Provider 安装体系。
+
+职责只有：
+
+- 对 AKM 内建支持的常见 `[software]` requirement 做只读 probe；
+- 产出 `present / missing / incompatible / unknown`；
+- 更新项目侧 `DEPENDENCIES.md` 的 AKM status block；
+- 报告还有多少特殊依赖需要 Agent 检查。
 
 Interface：
 
 ```text
-inspect(project)
-reconcile(project, desired_links)
-doctor(project, lock)
+probe_common(requirements) -> DependencyObservations
+write_status(dependency_file, observations)
 ```
 
-只管理 AKM 自己拥有的 `.akm/skills`，不直接管理具体 executor 的私有 Skill 目录。
-
-executor adapter 如果未来需要，应依赖 `Project Skill View`，不复制 Package。
-
-## `software`
-
-职责：
-
-- Software Catalog；
-- Probe；
-- requirement aggregation；
-- provider selection；
-- software action planning。
-
-Interface：
+该 Module 不提供：
 
 ```text
-doctor(requirements) -> SoftwareReport
-plan(requirements, report) -> SoftwarePlan
+install
+upgrade
+remove
+configure
 ```
-
-v0.1 不需要暴露 `apply` 给普通 sync 流程。
 
 ## `application`
 
-这是唯一允许编排多个深 Module 的上层用例层，例如：
+上层用例编排：
 
 ```text
+install_target()
 sync_project()
 update_project()
-remove_requirement()
+remove_target()
 doctor_project()
 ```
 
-它负责 transaction ordering 和 approval handoff，但不重新实现 resolver/store/artifact 规则。
+CLI/MCP/Python surface 以后都调用同一 application layer。
 
-未来 CLI、MCP、Python API 都应该调用同一 application use case，而不是各自重写业务逻辑。
-
-## 明确避免的浅 Module
+## 明确避免
 
 v0 不建立：
 
-- `GitHubService` 贯穿全项目；
-- 每个 TOML table 一个 manager class；
-- `DependencyManager` / `PackageManager` 这种只转发调用的总管类；
-- resolver 内部直接调用 subprocess/network/filesystem；
-- CLI command 内自行计算 dependency graph；
-- Provider 内重新解析 Package Manifest。
-
-## 第一阶段建议源码布局
-
-```text
-src/akm/
-├── metadata.py
-├── package_index.py
-├── resolution.py
-├── planning.py
-├── artifacts.py
-├── store.py
-├── activation.py
-├── software.py
-└── application.py
-```
-
-只有当某个文件真的形成多个独立变化原因时再拆成 package。首阶段先追求深 Module，而不是目录数量。
+- 抽象 Registry Package Identity 作为 GitHub 模式前置层；
+- Multi-Skill Package；
+- 扁平 global Skill name registry；
+- Software Provider 自动安装体系；
+- Package 自定义系统安装脚本；
+- repository runtime shared directory；
+- CLI command 内自行实现 dependency resolution。

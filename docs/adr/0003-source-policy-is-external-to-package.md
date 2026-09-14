@@ -1,27 +1,30 @@
-# ADR 0003：Package 依赖声明与 Source Policy 分离
+# ADR 0003：Skill dependency 与 source 分离
 
-- 状态：Proposed
+- 状态：Rejected
 - 日期：2026-09-14
 
-> 当前协议尚未定稿。该提案仍需结合 Skill 文件结构、Package 粒度与真实发布场景继续验证；不得作为实现前提。
+## 原提案
 
-## 背景
+原提案让 Skill dependency 只声明抽象 Package Identity 与 version range，再由独立 Package Index 或 source policy 决定实际获取位置。
 
-如果 transitive dependency 可以自行指定新的外部来源，那么安装一个 Package 时，实际参与解析的来源集合会在依赖图展开过程中不断变化，用户也无法在执行前看到稳定、完整的计划。
+## 拒绝原因
 
-## 决定
+AKM v0 不先建设独立 Registry，也不提前引入抽象 Package Identity。
 
-Package Manifest 中的 Skill dependency 只声明 `Package Identity -> version range`，不在依赖边中指定下载来源。
+GitHub 是当前直接使用的分发坐标，因此 dependency 写成：
 
-Package Identity 的可用版本与 Release Artifact 定位由 Package Index 提供；Git、path 或其他非默认来源只能由 Project Manifest 的显式 source override 或更高层项目策略引入。
+```toml
+[dependencies]
+"Akira-TL/matt-skills/implement" = "^1.4"
+```
 
-Package Manifest 可以保存 repository 等 provenance 信息，但 provenance 只描述“这个包来自哪里”，不代表项目已经批准该来源。
+`owner/repo/package` 已经同时表达 repository 与 Package selector；version range 用于选择对应 GitHub Release。
 
-软件依赖采用同样原则：Package 只声明 AKM Software Catalog 中的软件能力与版本要求；具体平台如何满足该要求由 AKM Provider 决定。
+## 当前方向
 
-## 结果
-
-- resolver 可以在执行前枚举完整 source 集合；
-- transitive dependency 不会隐式改变项目来源策略；
-- 第三方 Git Skill 仍然可用，但必须成为项目的显式 source override；
-- 软件依赖声明保持跨平台，平台差异集中在 Provider。
+- 默认从 GitHub Release 获取；
+- 找不到 Release 时不自动切换获取方式；
+- Git clone 只有在显式 Git 模式下使用；
+- transitive dependency 必须精确到 `owner/repo/package`；
+- 未来如果建立 AKM Registry，再增加独立的 Registry source model；
+- 软件依赖不由 AKM 的 Provider 自动处理：AKM只做常见软件的基础探测，复杂依赖由 `DEPENDENCIES.md` 交给 Agent 检查并与用户确认后处理。

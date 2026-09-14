@@ -1,81 +1,69 @@
 # AKM 领域词汇
 
-## Package
+## Skill Package
 
-AKM 的版本化发行与依赖解析单位，不等同于承载源码的 Git repository。一个 Package 暴露一个还是多个 Skill Entry 当前仍是开放设计问题。
+AKM 的最小安装、版本校验与依赖解析单位。一个 Skill Package 恰好对应一个标准 Agent Skill；Package Root 与 Skill Root 重合。
 
-## Package Identity
+## Package Name
 
-跨版本稳定的包身份。由命名空间与包名组成，例如 `akira/research`。它与 GitHub owner/repository、Release tag、下载 URL 相互独立。
+GitHub repository 内的局部 Package 名称，例如 `ask-matt`。它同时等于 Package Root basename、`SKILL.md.name` 与 `akm-package.toml` 中的 `package.name`，但不承担全局唯一身份。
 
-## Skill Entry
+## GitHub Package Coordinate
 
-Package 对 Agent 暴露的一个标准 Agent Skill。Skill Entry 以 `SKILL.md` 为核心；它在 Package 内的目录位置以及一个 Package 可包含多少个 Skill Entry 当前仍待设计。
+AKM v0 的 GitHub 分发坐标，形式为 `<owner>/<repo>/<package>@<version>`。`package` 可在用户顶层安装目标中省略以表示安装该 Release 中全部 Package；Skill dependency 必须包含 package。
 
-## Release
+## GitHub Release Version
 
-某个 Package Identity 的一个版本化、不可变发行快照，并指向一个可校验的 Release Artifact。具体版本约束语法仍由协议设计决定。
+GitHub 分发模式中的版本作用域。`@version` 先选择 repository 的 GitHub Release，再在该 Release 中选择一个或多个 Package Artifact；同一 Release 中的原生 AKM Package 使用该 Release version。
+
+## Router Skill
+
+负责指导 Agent 在一组能力之间路由的普通 Skill Package。AKM 不为 Router 定义特殊 Package 类型；一个 Skill Suite 由 Router Package 加其 transitive Skill dependency closure 形成。
 
 ## Release Artifact
 
-Release 的可下载、不可变归档。它包含 Package Manifest 与完整 Skill 内容，并具有内容完整性摘要。
+GitHub Release 中一个 Skill Package 的不可变归档。一个 Release 可以包含多个独立 Package Artifact，每个 Artifact 只包含一个 Skill Package。
 
 ## Package Manifest
 
-随 Package 源码与 Release Artifact 一起存在的结构化元数据。它声明 Package Identity、版本、Skill Entry 信息、Skill 依赖、软件依赖与兼容性，但不自行决定自己是否可信。
+Package Root 中的 `akm-package.toml`。它声明局部 Package name、version、Skill dependencies 与 AKM 能基础探测的常见软件 requirement，不复制 `SKILL.md` 的 Agent 行为信息。
 
-## Package Index
+## Dependency Check File
 
-向解析器提供 Package 可用版本、Package Manifest 与 Release Artifact 定位信息的受信元数据来源。它可以由 registry、GitHub Release 索引或其他适配器实现。
+Package Root 中的 `DEPENDENCIES.md`。它是给 Agent 阅读的软件/环境依赖检查说明，包含 Package author 的特殊依赖要求以及项目侧当前检查状态；它不是可执行安装脚本。
 
-## Source Locator
+## Skill Dependency
 
-指向某个精确 Package 内容的来源描述，例如 Release Artifact、Git commit 或本地 path。Source Locator 描述“从哪里取”，不等于 Package Identity。
+一个 Skill Package 对另一个 Skill Package 的显式依赖。GitHub 模式使用 `<owner>/<repo>/<package>` 定位目标并附加版本范围；运行时共享能力必须通过 Skill Dependency 表达，而不是跨 Package 文件共享。
 
 ## Project Requirement
 
-项目直接声明的顶层 Package 需求。它表达 Package Identity 与允许版本范围，必要时可附带项目显式批准的 source override。
+项目直接声明的顶层 GitHub install target，可以是 `<owner>/<repo>/<package>` 或 `<owner>/<repo>`；前者安装一个 Package 及其依赖闭包，后者安装该 Release 中全部 Package。
 
 ## Resolved Graph
 
-Dependency Resolver 根据 Project Requirement、可用版本与锁定状态求出的完整 Package 依赖图。图中的每个 Package 都具有精确版本和精确来源。
+AKM 根据 Project Requirement、GitHub Release/Git source 与 Package Manifest 求出的完整 Skill dependency graph。每个节点具有精确 source、release/commit 与 Package name。
 
 ## Lock Record
 
-Resolved Graph 中一个已解析 Package 的可重建记录。它保存精确版本、来源、完整性摘要及依赖边，不承担用户手写需求的职责。
+Resolved Graph 中一个 Package 的可重建记录，保存精确 GitHub repository、Release version 或 Git commit、Artifact/content integrity 与 dependency edges。
 
 ## Package Store
 
-机器级共享的不可变 Package 内容存储。多个项目可以复用同一内容，不通过复制形成各自副本。
+机器级共享的不可变 Package 内容存储。多个项目可以复用同一 Package payload；宿主环境检查状态不写回共享 Store。
 
-## Project Skill View
+## Project Skill Library
 
-某个项目实际启用的 Skill 名称集合。每个条目由 AKM 管理的软链接指向 Package Store 中的精确 Package 内容。
+项目侧按 `<owner>/<repo>/<package>` 分层组织的 Skill 库，例如 `.akm/skills/Akira-TL/matt-skills/ask-matt/`。AKM 不把不同来源的同名 Skill 扁平化；最终 Skill discovery 由 executor adapter 或执行器自身负责。
 
-## Software Requirement
+## Common Software Requirement
 
-Package 对宿主环境中的外部软件或运行时能力提出的结构化要求，例如 Git、GitHub CLI、samtools、Python、R 或 Node.js 的版本范围。
+`akm-package.toml` 中 `[software]` 声明的、AKM 内建只读 probe 能做基础发现的常见软件要求。AKM 只检查并记录状态，不负责安装、升级或修复。
 
-## Software Catalog
+## Special Dependency
 
-AKM 维护的“软件能力身份 → 探测方法 → 平台 Provider 映射”。Package 只声明需要什么能力，不嵌入任意系统安装命令。
-
-## Provider
-
-在特定平台上检查或安装某个 Software Requirement 的适配器。Provider 的安装动作只有在用户批准 Install Plan 后才允许执行。
+无法由 AKM 常见 probe 可靠处理的软件、硬件、服务、数据、驱动、授权或其他环境要求。它写在 `DEPENDENCIES.md` 中，由 Agent 检查；若需要修改环境，Agent 必须先向用户说明并获得明确批准。
 
 ## Install Plan
 
-在任何持久化修改发生前生成的完整执行计划。它同时描述 Package 下载、校验、Package Store 变更、Project Skill View 变更、信任决策和缺失软件依赖。
-
-## Trust Boundary
-
-决定某个 source、Package Index 或软件 Provider 是否允许进入解析和执行流程的边界。信任不能由 Package 自身元数据单方面声明。
-
-## Reverse Dependency
-
-在 Resolved Graph 中直接依赖某 Package 的其他 Package。
-
-## Orphan Package
-
-曾因依赖关系进入项目 Resolved Graph，但在当前顶层 Project Requirement 的依赖闭包中已经不可达的 Package。
+在项目安装/同步前形成的 Package 获取、依赖解析、Store/Project Skill Library 变化及依赖检查结果。AKM 不把缺失宿主软件自动转换为系统安装动作。

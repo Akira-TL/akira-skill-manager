@@ -1,8 +1,8 @@
 # AKM v0 协议工作草案
 
-## 本阶段范围
+## 当前阶段
 
-当前仍处于协议探索与收敛阶段，不实现 CLI，也不迁移旧 `akira-skills` installer。以下文档都是 working draft；在 Skill 本体目录/文件结构、Package 与 Skill 的基数关系等基础问题讨论完成前，不视为稳定协议。
+当前仍处于协议收敛阶段，不进入 CLI/runtime 实现。以下文档是当前 working draft；已经明确拒绝的旧方案不再作为实现候选。
 
 设计文件：
 
@@ -14,114 +14,73 @@
 6. [`05-software-dependencies.md`](05-software-dependencies.md)
 7. [`06-module-boundaries.md`](06-module-boundaries.md)
 
-## 当前候选设计（未定稿）
+## 已明确的 v0 方向
 
-以下条目只是当前方案，需要继续通过 Skill 目录结构、真实仓库发布场景和依赖案例验证；其中任何一项都可能修改或撤销。
+- GitHub 是首个直接分发坐标系，不先建设独立 Registry；
+- 用户安装目标使用 `<owner>/<repo>[/<package>]@<version>`；
+- 默认从 GitHub Release 获取；Git clone 必须显式启用；
+- 一个 Skill Package 恰好包含一个 Skill；
+- Package Root 与 Skill Root 重合；
+- Multi-Skill Package 不进入 v0；
+- Router 是普通 Skill Package，产品能力族由 Router + transitive dependencies 形成；
+- 运行时共享能力必须写成 dependency，不允许跨 Package hidden shared files；
+- GitHub dependency 直接使用 `<owner>/<repo>/<package>` + version range；
+- GitHub `@version` 对应 repository Release version；
+- Project Skill Library 按 `<owner>/<repo>/<package>` 分层，不由 AKM core 扁平化；
+- 同名 Skill 在 AKM library 层可以共存；最终 discovery 交给 executor adapter/执行器；
+- 每个原生 Package 包含 `DEPENDENCIES.md`；
+- AKM 只基础探测少量常见软件并写状态，不负责自动安装/修复宿主依赖；
+- 特殊软件、硬件、服务、数据、授权等依赖由 Agent 根据 `DEPENDENCIES.md` 检查，涉及环境修改时先与用户确认；
+- Package payload 机器级共享，项目侧 Package leaf 可以作为 activation overlay 保存可写 dependency status。
 
-- 一个 Package 恰好发行一个 Skill；
-- Package Identity 使用 `namespace/skill-name`，与 repository 身份分离；
-- Package Release 使用 Semantic Versioning 2.0.0；同一版本内容不可变；
-- `SKILL.md` 不承载 AKM 结构化依赖协议；独立使用 `akm-package.toml`；
-- 一个项目中同一 Package Identity 只允许一个版本；不同项目可锁不同版本；
-- Package dependency 只写 identity + version range，不能自行引入新的 source；
-- 正常稳定安装使用不可变 Release Artifact；Git/path 是显式开发/兼容 source；
-- Project Manifest `akm.toml` 只写顶层需求；`akm.lock` 保存完整 exact graph；
-- Lock 固定 exact version、exact source provenance 和 integrity；
-- resolver 首选 PubGrub 风格实现，并额外拒绝 dependency cycle 和 Skill name collision；
-- resolver 与执行分离；所有变化先形成完整 Install Plan；
-- 软件依赖只声明 Software Catalog capability，不嵌入平台安装方法；
-- v0.1 先实现 software doctor + plan，不自动修改宿主软件环境；
-- Package content 机器级共享，项目激活视图只使用 symlink；
-- remove 通过重新求解 dependency closure 完成，Store garbage collection 独立处理。
-
-## 当前设计目标与假设
+## 核心关系
 
 ```text
-Repository != Package
-Release == immutable Package@Version
-Manifest == intent/metadata
-Lock == exact resolved graph
-Store == immutable shared content
-Project Skill View == symlinks only
-Package dependency != source grant
-Software requirement != installation method
-Resolution != execution
+GitHub repository
+    ├── Package A == Skill A
+    ├── Package B == Skill B
+    └── Package C == Skill C
+
+Router Skill
+    └── dependencies -> other Skill Packages
+
+GitHub Release version
+    └── multiple independent Package Artifacts
+
+Project Skill Library
+    └── <owner>/<repo>/<package>/
 ```
+
+## 当前没有的东西
+
+v0 不提前引入：
+
+- 独立 Registry namespace/package identity；
+- Multi-Skill bundle；
+- Package Index 作为 GitHub 的强制中间层；
+- 扁平 Skill name 全局唯一约束；
+- Software Provider 自动安装体系；
+- Package 自定义系统安装脚本；
+- repository runtime shared directory。
+
+## 下一步仍需收敛
+
+- GitHub Release tag/version 的严格命名规则；
+- Release asset integrity/attestation 的最小契约；
+- Git source 与 Release source 同 repo 混用是否完全禁止；
+- `DEPENDENCIES.md` 的精确可编辑区域/升级合并算法；
+- Project Skill Library 到不同 executor 的发现适配；
+- version range 的最终 grammar；
+- Lock 的 canonical TOML 结构；
+- Store GC 与跨项目引用发现；
+- optional dependencies / feature flags 是否需要进入后续版本。
 
 ## 协议稳定后的候选实现顺序
 
-在基础协议仍有开放问题时不进入实现；以下切片只用于记录未来可能的工程顺序。
-
-### Slice 1：typed metadata
-
-- PackageIdentity；
-- SemVer / VersionRequirement；
-- PackageManifest；
-- ProjectManifest；
-- Lock model；
-- TOML parser/validator/serializer；
-- canonical manifest digest。
-
-完成门槛：examples 可 round-trip，非法 identity/range/schema 有结构化错误。
-
-### Slice 2：offline resolver
-
-- InMemoryPackageIndex；
-- transitive dependency；
-- single-version constraint；
-- lock preference；
-- conflict derivation；
-- cycle；
-- Skill name collision；
-- reverse dependency / orphan 计算。
-
-完成门槛：完全不接网络/文件系统即可测试 A→B→C、diamond dependency、冲突、cycle、selective update。
-
-### Slice 3：artifact + Store
-
-- deterministic package builder；
-- safe tar extraction；
-- SHA-256 verification；
-- Release/Git/path snapshot；
-- content-addressed Store。
-
-完成门槛：错误 digest、path traversal、identity drift 全部 fail closed。
-
-### Slice 4：Project activation
-
-- `.akm/skills` staging/reconcile；
-- atomic switch；
-- doctor；
-- remove/orphan activation semantics。
-
-### Slice 5：software doctor
-
-- Software Catalog；
-- Probe；
-- requirement aggregation；
-- SoftwareReport；
-- InstallPlan 合并。
-
-到这里才具备实现 CLI/MCP surface 的稳定核心。
-
-## 当前开放问题
-
-优先级最高：
-
-- 标准 Agent Skill 在源码仓、Package、Release Artifact 与安装后 Store 中分别采用什么目录/文件结构；
-- Package 与 Skill Entry 是 1:1、1:N，还是同时支持普通 Package 与聚合 Package；
-- `SKILL.md`、AKM Package Manifest、Package 根目录之间的相对位置；
-- 一个多 Skill repository 如何选择性构建和发布单个 Package，如何表达共享文件；
-
-随后再决定：
-
-
-- 首个远端 Package Index 的实际托管格式；
-- GitHub Release publish automation；
-- Package signature / attestation；
-- Runtime 内部依赖（Python/R/Node libraries）；
-- software Provider 自动 apply；
-- executor-specific activation adapter；
-- central registry namespace ownership；
-- store GC 的跨项目发现机制；
-- optional dependencies / feature flags。
+1. GitHub coordinate + Package/Project metadata parser；
+2. GitHub Release/Git source resolver；
+3. Artifact verification + immutable Store；
+4. hierarchical Project Skill Library activation；
+5. common dependency probes + `DEPENDENCIES.md` status；
+6. executor adapters；
+7. CLI/MCP surface。

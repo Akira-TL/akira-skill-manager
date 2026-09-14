@@ -1,27 +1,40 @@
-# ADR 0002：同一项目中一个 Package Identity 只解析一个版本
+# ADR 0002：扁平 Skill name 冲突与 Package Identity 单版本模型
 
-- 状态：Proposed
+- 状态：Rejected
 - 日期：2026-09-14
 
-> 当前协议尚未定稿。该提案仍需结合 Skill 文件结构、Package 粒度与真实发布场景继续验证；不得作为实现前提。
+## 原提案
 
-## 背景
+原提案假设 Project Skill View 是扁平的：
 
-传统语言包管理器有时允许同一依赖的多个版本同时存在，例如通过嵌套模块目录隔离。但 Agent Skill 在项目中最终以 Skill 名称进入一个项目级激活视图；两个版本如果暴露同一个 `SKILL.md` name，无法在该视图中同时拥有无歧义的名字。
+```text
+skills/<skill-name>
+```
 
-## 决定
+因此不同来源只要导出同名 `SKILL.md.name` 就会冲突，并进一步提出“一个 Package Identity 在项目中只能有一个版本”的全局 Package Identity 模型。
 
-一个 Project Environment 的 Resolved Graph 中，同一 Package Identity 最多存在一个精确版本。
+## 拒绝原因
 
-若两个依赖链要求互不相交的版本范围，resolver 必须报告版本冲突，而不是偷偷安装两个版本。
+AKM v0 已改为按 GitHub 安装坐标分层保存项目 Skill Library：
 
-机器级 Package Store 仍允许同时保存任意数量的版本和内容；不同项目可以锁定同一 Package 的不同版本。
+```text
+skills/<owner>/<repo>/<package>/
+```
 
-此外，不同 Package Identity 如果最终导出相同 Skill 名称，也视为激活冲突并 fail closed。
+例如：
 
-## 结果
+```text
+skills/Akira-TL/matt-skills/ask-matt/
+skills/someone/other-repo/ask-matt/
+```
 
-- 项目激活结果确定且无名称歧义；
-- resolver 可以采用天然支持“每包单版本”的 PubGrub 类模型；
-- 冲突必须通过升级、降级或修改依赖约束解决，不能靠隐藏的重复版本绕过；
-- 跨项目版本并存不受影响。
+因此同名 Skill 不在 AKM core library 层构成冲突。最终执行器是否能同时发现、如何映射这些 Skill Root，由 executor adapter/执行器本身处理。
+
+同时 v0 不建立独立 Registry Package Identity；版本首先属于 GitHub repository Release。来自同一个 repository 的依赖约束会共同选择一个满足条件的 Release version，再从该 Release 中选 Package Artifact。
+
+## 当前方向
+
+- 不维护全局扁平 Skill name 唯一性约束；
+- 不以 `namespace/package` 作为 v0 Package Identity；
+- GitHub resolver 以 repository Release version + package selector 为核心；
+- 将来如果增加 Registry source model，再单独设计 Registry package identity 与多版本规则。

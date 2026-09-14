@@ -1,247 +1,283 @@
-# Skill Package Layout 工作草案
+# Skill 包与 GitHub 分发布局
 
-状态：Proposed
+状态：Working Draft
 
 对应 Wayfinder：`Choose the AKM Package Root and Skill Entry layout`
 
-## 问题
+## 1. 当前已经明确的基础模型
 
-AKM 必须同时处理四种不同位置：
+AKM v0 不设计独立 Registry，也不先发明类似 npm 的全局 Package Identity。当前分发坐标直接建立在 GitHub repository 上。
 
-1. 作者在 Git repository 中维护 Skill 的源码位置；
-2. AKM 认定的 Package Root；
-3. Release Artifact 解包后的目录；
-4. 机器级 Package Store 与项目激活视图中的目录。
+一个可安装目标使用：
 
-如果这四种位置没有明确关系，Package Manifest、Release 构建、完整性校验、软链接激活和多 Skill repository 都会产生隐式假设。
+```text
+<github-owner>/<repository>[/<package>]@<version>
+```
 
-## 上游兼容底线
+例如：
 
-当前 Agent Skills 规范只要求 Skill 是一个目录，根目录含 `SKILL.md`；`scripts/`、`references/`、`assets/` 是推荐约定而不是封闭白名单，其他文件和目录允许存在。
+```text
+Akira-TL/matt-skills/ask-matt@1.4.0
+Akira-TL/matt-skills@1.4.0
+```
 
-因此 AKM 的 portable baseline 应满足：
+语义：
 
-- 激活给执行器的对象始终是合法 Skill Root；
-- AKM 不重写 Skill 内部相对路径；
-- AKM 不把 Skill 内容限制为固定目录 schema；
-- Package metadata 可以作为额外文件存在，但 Agent 不需要读取它；
-- 客户端自己的更严格规则只能作为 profile validator，而不是 AKM portable package 的基础规则。
+- `github-owner`：GitHub owner/user/organization；
+- `repository`：GitHub repository；
+- `package`：repository 内的 Skill Package 名称，可省略；
+- `version`：GitHub Release 版本；
+- 指定 `package` 时只安装该 Package 及其依赖闭包；
+- 省略 `package` 时安装该 Release 中的全部 Package。
 
-事实依据见 `docs/research/skill-directory-and-distribution.md`。
+未来如果 AKM 建立独立 Registry，再增加独立的 registry package identity。GitHub 安装坐标与未来 Registry identity 必须作为两种不同 source model 明确区分，而不是提前把 Registry 命名模型强塞进 GitHub 模式。
 
-## 候选 A：Inline Skill Package
+## 2. Release-first，Git clone 必须显式选择
 
-一个普通 Package 恰好对应一个 Skill，Package Root 与 Skill Root 重合：
+默认安装路径：
+
+```text
+owner/repo[/package]@version
+        ↓
+GitHub Release
+        ↓
+下载对应 Package Artifact
+```
+
+AKM 不因为找不到 Release 就静默切换到 Git clone。
+
+如果 repository 没有可用 Release，用户显式选择 Git 模式，例如：
+
+```text
+akm install Akira-TL/matt-skills/ask-matt@main --git
+akm install Akira-TL/matt-skills@<commit> --git
+```
+
+Git 模式下：
+
+1. clone/fetch repository；
+2. checkout 精确 ref/commit；
+3. 扫描 Package Root；
+4. 指定 package 时只选择该 Package；
+5. 未指定 package 时选择全部发现的 Package；
+6. 仍按 Package dependency 递归解析其他 Skill Package。
+
+Release 是稳定分发路径；Git 是开发、兼容和“尚未发布 Release”的显式路径。
+
+## 3. 一个 Package 只包含一个 Skill
+
+Multi-Skill Package 不进入 AKM v0。
+
+一个 Package Root 就是一个标准 Agent Skill Root：
 
 ```text
 ask-matt/
 ├── SKILL.md
 ├── akm-package.toml
+├── DEPENDENCIES.md
 ├── scripts/                 # optional
 ├── references/              # optional
 ├── assets/                  # optional
-└── ...                      # Agent Skills 允许的任意其他内容
+└── ...
 ```
 
-这里：
+固定关系：
 
 ```text
 Package Root == Skill Root
+one Package == one Skill
 ```
 
-`akm-package.toml` 是分发工具读取的文件；`SKILL.md` 仍然只服务 Agent discovery/activation。
+因此 Package 不需要 `skill-path`、`entry` 或 multi-entry 描述。
 
-### 多 Skill repository
-
-Repository 不是 Package：
+如果一个 repository 维护多个 Skill，它维护的是多个独立 Package：
 
 ```text
 matt-skills/
-├── README.md
-├── skills/
-│   ├── engineering/
-│   │   ├── ask-matt/
-│   │   │   ├── SKILL.md
-│   │   │   ├── akm-package.toml
-│   │   │   └── ...
-│   │   ├── tdd/
-│   │   │   ├── SKILL.md
-│   │   │   ├── akm-package.toml
-│   │   │   └── ...
-│   │   └── code-review/
-│   │       ├── SKILL.md
-│   │       ├── akm-package.toml
-│   │       └── ...
-│   └── productivity/
-│       └── ...
-└── repo-only tooling/
-```
-
-每个存在 `akm-package.toml` 的 Skill Root 是独立 Package source root。一次 repository checkout 可以承载很多 Package，但安装、版本、依赖和 Artifact 都按 Package 分开。
-
-### Release Artifact
-
-当前候选归档形状：
-
-```text
-akira-ask-matt-1.4.0.akm.tar.gz
-└── ask-matt/
-    ├── SKILL.md
-    ├── akm-package.toml
-    ├── scripts/
-    ├── references/
-    └── ...
-```
-
-Artifact 保留一个以 Skill name 命名的顶层目录。这样无论解包还是 Store 存储，`SKILL.md.name` 与物理父目录名都保持一致。
-
-### Machine Store
-
-候选 Store 对象形状：
-
-```text
-~/.local/share/akm/store/
-└── sha256/
-    └── <artifact-or-payload-digest>/
-        └── ask-matt/
-            ├── SKILL.md
-            ├── akm-package.toml
-            └── ...
-```
-
-项目激活只链接 Skill Root：
-
-```text
-<project-skill-view>/ask-matt
-    -> ~/.local/share/akm/store/sha256/<digest>/ask-matt
-```
-
-因此执行器最终看到的仍然是标准 Skill directory，不需要理解 Package wrapper。
-
-## 候选 B：Wrapper / Multi-Skill Package
-
-Package Root 与 Skill Root 分离：
-
-```text
-engineering-bundle/
-├── akm-package.toml
 └── skills/
     ├── ask-matt/
-    │   └── SKILL.md
-    ├── tdd/
-    │   └── SKILL.md
-    └── code-review/
-        └── SKILL.md
+    │   ├── SKILL.md
+    │   ├── akm-package.toml
+    │   └── DEPENDENCIES.md
+    ├── implement/
+    │   ├── SKILL.md
+    │   ├── akm-package.toml
+    │   └── DEPENDENCIES.md
+    └── tdd/
+        ├── SKILL.md
+        ├── akm-package.toml
+        └── DEPENDENCIES.md
 ```
 
-Package Manifest 需要声明多个 Skill Entry path；Project Skill View 再分别链接到 Package 内的各 Skill Root。
+Package discovery 的机械条件是一个目录同时存在 `SKILL.md` 与 `akm-package.toml`。`DEPENDENCIES.md` 是原生 AKM Package 的依赖检查文件，具体语义见 `05-software-dependencies.md`。
 
-### 优点
+## 4. Router 通过 Skill dependency 组织能力族
 
-- 能把一组 Skill 作为同版本、同 Artifact 的原子发行单元；
-- package-level shared payload 更容易表达；
-- 与 Agent Skills 官方仓库 Discussion #210 的 multi-Skill package 草案接近。
+AKM 不使用 Multi-Skill bundle 表达 Matt、Research 等能力族。
 
-### 代价
+能力族由一个 Router Skill 加依赖闭包形成。例如：
 
-- 一个 Skill 的升级会耦合整个 bundle 的版本；
-- “安装一个 Skill”不再等价于“安装一个 Package”；
-- dependency graph 的节点与最终激活 Skill 名称出现第二层关系；
-- 同 Package 内部分 Skill 是否可独立依赖、禁用、覆盖会引出额外 resolver 语义；
-- Store 对象不能直接作为一个 Skill Root 使用；
-- 用户最初提出的“同仓 A/B/C…，安装 A 不能顺带安装 G/H/I…”问题更容易重新出现。
+```text
+ask-matt
+├── implement
+│   ├── tdd
+│   └── code-review
+├── wayfinder
+│   ├── research
+│   └── grilling
+└── triage
+```
 
-因此当前不建议把它作为 v0 普通 Package 模型。
+Router 本身仍是一个普通 Skill Package。它通过 `SKILL.md` 指导 Agent 何时使用哪些能力；`akm-package.toml` 只声明必须安装的 Skill dependencies。
 
-## 候选 C：Repository-as-Package
+因此：
+
+```text
+Skill Suite / Product
+= Router Package + transitive dependency closure
+```
+
+而不是一个包含多个 Skill 的 Artifact。
+
+## 5. 禁止跨 Package Runtime 共享
+
+Git repository 可以共享开发期工具，例如 repository-level lint、test、release builder；但 Skill runtime 不允许通过 repository 相对路径依赖 sibling Package 或公共目录。
+
+不允许：
 
 ```text
 repo/
-├── akm-package.toml
+├── shared/runtime-helper.py
 └── skills/
-    ├── a/
-    ├── b/
-    ├── c/
-    └── ...
+    └── a/
+        └── scripts/run.py  # 运行时依赖 ../../../shared/runtime-helper.py
 ```
 
-这会重新把 Git repository 粒度带回安装和版本模型，与 AKM 的原始问题直接冲突。当前应视为 rejected candidate，而不是工作方向。
+如果两个 Skill 都需要某项 runtime 能力：
 
-## 当前推荐
+- 它是另一个 Skill 能力：拆成 Skill dependency；
+- 它是外部软件/环境：写入 `DEPENDENCIES.md`，常见部分可同时进入结构化 software requirements；
+- 它只是少量 Package 私有资源：各 Package 自己包含。
 
-v0 优先采用 **Inline Skill Package**：
+原则是：**运行时共享必须显式变成依赖，不允许依赖“恰好在同一个 Git checkout”。**
+
+## 6. 项目 Skill Library 不做扁平化
+
+AKM 不把所有 Skill 直接放成：
 
 ```text
-Package Root == Skill Root
-one ordinary Package == one Skill Entry
+skills/
+├── foo
+└── bar
 ```
 
-但这仍是 Proposed，而不是 Accepted。它目前的主要优势是：
-
-1. 与 Agent Skills 标准目录天然兼容；
-2. Git repository 与 Package 粒度彻底解耦；
-3. Release Artifact、Store object 和 Project activation 都不需要目录转换层；
-4. 一个多 Skill repository 可以独立发布其中任意 Skill；
-5. Package dependency graph 与最终 Skill activation graph 基本同构；
-6. OpenAI 当前的 directory/ZIP Skill bundle 与 immutable Skill Version 模型也更容易适配。
-
-## 需要一起固定的文件规则
-
-如果采用 Inline Skill Package，建议同时固定以下约束：
-
-### Package Root
-
-- 目录 basename 必须与 `SKILL.md.name` 一致；
-- 必须包含合法 `SKILL.md`；
-- 必须包含 `akm-package.toml` 才是原生 AKM Package；
-- 其他 Skill 内容由 Agent Skills 规范决定，AKM 默认透明保留；
-- Package 不允许依赖 Package Root 之外的相对文件才能运行。
-
-### Symlink
-
-源码 repository 内是否允许普通 symlink 可以另行讨论，但 Release Artifact v0 建议不包含 symlink/hardlink。Package builder 应把 Artifact 视为自包含普通文件目录树，避免解包逃逸与跨平台差异。
-
-### README 等额外文件
-
-Agent Skills portable validator 不应因为存在 `README.md` 或其他额外文件而拒绝 Package，因为当前规范允许任意附加内容。若 Claude 或其他客户端有更严格的作者建议，应由可选 client profile 给 warning/error。
-
-### 多个 `SKILL.md`
-
-普通 Inline Package Root 的根必须只有一个作为 Skill Entry 的 `SKILL.md`。`references/` 等内部资源中即使存在同名 Markdown 文件也不等于新的 Skill Entry；真正的嵌套 Skill Root 是否禁止，应在 validator 规则中明确定义。
-
-## 多 Skill repository 的共享文件问题
-
-一个 repository 可以有 repo-level 开发工具、测试 fixtures、文档和生成脚本，但一个可发布 Package Artifact 必须自包含。
-
-v0 最简单的规则是：
+项目 Skill Library 按安装坐标保留 GitHub owner/repository/package：
 
 ```text
-Package payload = Package Root 内的文件闭包
+<project>/.akm/skills/
+├── Akira-TL/
+│   └── matt-skills/
+│       ├── ask-matt/
+│       ├── implement/
+│       └── tdd/
+└── someone-else/
+    └── another-repo/
+        └── ask-matt/
 ```
 
-也就是说不能通过 `../shared/...` 让运行时依赖逃出 Package Root。若多个 Skill 需要相同 runtime resource，作者需要把它物化进各自 Package，或后续设计真正的共享 runtime dependency；不能依赖“它们刚好在同一个 Git checkout”。
-
-这条规则对 Git source 尤其重要：Git checkout 只是构建/获取来源，不能成为运行时隐藏依赖。
-
-## Source layout 与 Artifact layout 分离
-
-AKM 不应要求 repository 根就是 Package Root。Package Locator 可以指向 repository 内任意明确 Package Root：
+因此两个 repository 都存在 `ask-matt` 时，AKM 自身没有名称冲突：
 
 ```text
-repo = https://github.com/Akira-TL/matt-skills
-ref = <commit/tag>
-subdir = skills/engineering/ask-matt
+Akira-TL/matt-skills/ask-matt
+someone-else/another-repo/ask-matt
 ```
 
-构建或 Git compatibility install 只从该 `subdir` 形成 Package payload。其他 sibling Skill 不进入 Artifact，也不进入当前项目。
+AKM 只维护有来源层级的 Skill Library。某个执行器是否支持递归 Skill discovery、需要额外索引、还是需要建立自己的执行器视图，由 executor adapter 负责；AKM 核心协议不为了某个执行器而强制扁平化。
 
-以后如需优化 monorepo discoverability，可增加 repository/workspace-level index，但它只负责列出 Package roots，不改变 Package 本身的 1:1 语义。
+## 7. Package Root 名称
 
-## 尚未决定
+Package 名称是 repository 内局部名称，不承担全局唯一身份。
 
-- 是否现在就把 ordinary Package = one Skill Entry 提升为 Accepted ADR；
-- `akm-package.toml` 是否必须进入运行时 Store，还是 Store 另建 sidecar metadata；
-- Artifact integrity 是对 canonical tar bytes、解压 payload tree，还是两者都记录；
-- GitHub multi-package repository 如何命名 tag/release，才能允许各 Package 独立版本；
-- 第三方只有 `SKILL.md`、没有 `akm-package.toml` 时，AKM 的 synthetic manifest 放在哪里；
-- 是否需要可选 `akm-workspace.toml` 来显式列出 repository 内 Package roots。
+建议机械约束：
+
+```text
+basename(Package Root)
+== SKILL.md.name
+== akm-package.toml package.name
+```
+
+例如：
+
+```text
+skills/ask-matt/
+SKILL.md.name = "ask-matt"
+akm-package.toml package.name = "ask-matt"
+```
+
+完整安装坐标由外部 source context 组成：
+
+```text
+Akira-TL/matt-skills/ask-matt@1.4.0
+```
+
+而不是在 Package 内再次声明 `akira/ask-matt` 这种全局 ID。
+
+## 8. Release Artifact 当前建议
+
+GitHub Release 是 repository 级版本发布。一个 Release 可以附带多个 Package Artifact；每个 Package 仍是独立 Artifact。
+
+例如 Release `1.4.0`：
+
+```text
+ask-matt.akm.tar.gz
+implement.akm.tar.gz
+tdd.akm.tar.gz
+code-review.akm.tar.gz
+```
+
+指定：
+
+```text
+Akira-TL/matt-skills/ask-matt@1.4.0
+```
+
+只下载 `ask-matt` Artifact，再根据它的 Skill dependencies 继续解析。
+
+指定：
+
+```text
+Akira-TL/matt-skills@1.4.0
+```
+
+安装该 Release 中全部 AKM Package Artifact。
+
+Artifact 内部直接是 Package Root 内容，不再套一层 package-name wrapper：
+
+```text
+ask-matt.akm.tar.gz
+├── SKILL.md
+├── akm-package.toml
+├── DEPENDENCIES.md
+├── references/
+└── scripts/
+```
+
+Package name 由 Artifact 名、`akm-package.toml` 与 `SKILL.md.name` 三方校验。
+
+## 9. 未来 Registry 的分界
+
+当前 GitHub 模式：
+
+```text
+github:owner/repo/package@version
+```
+
+版本由 GitHub Release 提供，source provenance 天然属于 GitHub repository。
+
+未来如果建立 AKM Registry，可增加另一种坐标，例如：
+
+```text
+registry:scope/package@version
+```
+
+Registry 模式才需要独立 namespace ownership、package index、publisher identity 等模型。两者共享 Package Manifest、dependency graph、Store 与 Project Lock 的大部分结构，但 source identity 不混为一谈。

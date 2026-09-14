@@ -1,12 +1,11 @@
 schema = 1
 
 [skills]
-"akira/ask-matt" = "^1.4"
-"akira/ngs" = "^2.0"
-"thirdparty/special-skill" = "^0.3"
+"Akira-TL/matt-skills/ask-matt" = "^1.4"
+"Akira-TL/skills/browser-access" = "^2.0"
+"example/special-skills/special-skill" = "^0.3"
 
-[sources."thirdparty/special-skill"]
+# 没有 Release 或明确需要源码开发版本时，Git 模式必须显式声明。
+[sources."example/special-skills/special-skill"]
 kind = "git"
-url = "https://github.com/example/special-skill.git"
 ref = "main"
-subdir = "skill"

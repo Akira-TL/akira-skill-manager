@@ -1,261 +1,285 @@
-# Dependency Resolver 与 Install Plan v0 设计
+# Dependency Resolver 与 Install Plan v0 工作草案
 
-## 目标
+## 1. Resolver 要解决什么
 
-resolver 只回答一个问题：给定项目顶层需求、source policy、Package Index 和已有 Lock，应选择哪一组精确 Package Release 才能满足全部约束。
+AKM v0 不是对一个抽象 Registry Package 世界求解，而是对 GitHub repositories 的 Release versions 与其中的 Package selectors 求解。
 
-resolver 不直接下载 Package、不创建 symlink、不安装软件。所有持久化动作必须先被转换成 Install Plan。
-
-## 核心不变量
-
-1. 同一 Project Environment 中一个 Package Identity 最多一个版本；
-2. 所有选中 Package 必须从顶层 Project Requirement 可达；
-3. 所有 Skill dependency version range 必须被满足；
-4. 一个 Package Identity 在一次解析中只能绑定一个 source policy；
-5. 两个不同 Package Identity 不得导出同一个 Skill name；
-6. 最终 Package dependency graph 不允许有 cycle；
-7. unsupported platform / software requirement 不得被伪装成成功安装；
-8. resolver 输出必须是纯数据，可在不修改文件系统的测试中完整验证。
-
-## Resolver 输入
-
-逻辑接口：
+顶层输入例如：
 
 ```text
-resolve(
-  project_requirements,
-  source_policy,
-  package_index,
-  previous_lock?,
-  resolution_mode,
-) -> Resolution | ResolutionError
+Akira-TL/matt-skills/ask-matt ^1.4
+Akira-TL/skills/browser-access ^2.0
 ```
 
-### `project_requirements`
+Package Manifest 再引入：
 
-来自 `akm.toml [skills]` 的顶层 Package Identity + version range。
+```toml
+[dependencies]
+"Akira-TL/matt-skills/implement" = "^1.4"
+"Akira-TL/matt-skills/wayfinder" = "^1.4"
+```
 
-### `source_policy`
+Resolver 最终确定：
 
-决定每个 Package Identity 从哪个 Package Index / source override 获取候选版本。Package Manifest 自身不能修改它。
+- 每个 GitHub repository 使用哪个精确 Release version；
+- 每个 Release 中真正需要哪些 Package Artifact；
+- 完整 transitive dependency graph；
+- 哪些 source 显式使用 Git 模式。
 
-### `package_index`
+## 2. GitHub 模式的版本求解单位
 
-resolver 只依赖一个小接口：
+GitHub v0 中 version 属于 repository Release。
+
+例如同一 dependency graph 出现：
 
 ```text
-available_versions(package) -> ordered version metadata
-manifest(package, exact_version) -> Package Manifest
-artifact_metadata(package, exact_version) -> locator + integrity
+Akira-TL/matt-skills/ask-matt    ^1.4
+Akira-TL/matt-skills/implement   >=1.4 <2
+Akira-TL/matt-skills/tdd         ^1.5
 ```
 
-GitHub Releases、未来 registry、本地测试 index 都是这个 seam 上的 Adapter。
+这些不是三个彼此独立的 Package version choice，而是共同约束：
 
-resolver 获取 manifest metadata 不等于下载 Release Artifact。
+```text
+repository = Akira-TL/matt-skills
+release version must satisfy all relevant ranges
+```
 
-### `previous_lock`
+一旦选中 Release `1.6.2`，需要的 Package 分别取：
 
-可选。用于普通 `sync` 中优先复用仍满足全部约束的 exact version，降低无关依赖漂移。
+```text
+ask-matt.akm.tar.gz
+implement.akm.tar.gz
+tdd.akm.tar.gz
+```
 
-### `resolution_mode`
+这保持 `owner/repo/package@version` 的语义简单。
 
-至少包括：
+## 3. 同名 Skill 不属于 AKM resolver 冲突
 
-- `sync`；
-- `update-all`；
-- `update-selected(package set)`；
-- `frozen`。
+AKM Project Skill Library 是：
 
-`offline` 是 source access policy，不与 resolution mode 混为一个枚举。
+```text
+skills/<owner>/<repo>/<package>/
+```
 
-## 版本选择顺序
+所以：
 
-对同一 Package Identity：
+```text
+A/repo/foo
+B/repo/foo
+```
 
-1. 如果 previous lock exact version 仍满足全部约束、source policy 和 compatibility，则优先选择；
-2. 如果该 Package 被显式 update，则不使用其 lock preference；
-3. 在剩余候选中优先选择最高的 compatible stable version；
-4. prerelease 只有在顶层或 transitive range 显式允许时才参与；
-5. yanked Release 不作为新选择，但 previous lock 已锁定的 yanked version 可以继续使用并产生 warning，除非 Package Index 标记为 revoked/security-blocked。
+可以同时存在。
 
-“最高版本”只是 candidate preference，不改变约束正确性。
+AKM core 不再定义 `SkillNameCollision`。
 
-## 算法选择
+如果某个执行器只能接受扁平 Skill namespace，冲突由 executor adapter 在生成该执行器视图时处理或报告；这不影响 Package graph 本身是否合法。
 
-v0 设计采用 PubGrub 风格的 incompatibility solver 作为首选实现方向。
+## 4. Dependency cycle
 
-原因：
-
-- 它的标准问题定义就是“每个 Package 选至多一个版本”；
-- 支持 transitive version constraints；
-- 冲突时能生成 derivation tree，而不是只返回“没有解”；
-- package metadata 可以 lazy 获取，不需要先枚举整个生态；
-- 与 AKM 的 Package Index seam 相容。
-
-参考：[Dart pub solver design](https://github.com/dart-lang/pub/blob/master/doc/solver.md)。
-
-算法本身必须封装在 `resolution` Module 内；未来换算法不能改变 Manifest/Lock 协议。
-
-## Cycle
-
-PubGrub 的“版本有解”不代表 AKM 的 Skill 依赖图符合领域规则。
-
-因此 version solve 成功后必须对 exact dependency graph 运行 cycle detection。发现：
+Skill dependency graph 仍不允许 cycle：
 
 ```text
 A -> B -> C -> A
 ```
 
-必须失败并报告完整 cycle path。
+原因不是文件名冲突，而是安装/能力依赖关系无法形成清晰的 dependency closure。
 
-v0 不区分 build-time/runtime cycle；所有 Skill dependency cycle 都拒绝。
+Resolver 必须报告完整 cycle path。
 
-## Skill name collision
+## 5. Source 模式
 
-解析后读取每个 Package 的 exported Skill name。若：
+### GitHub Release
 
-```text
-namespace-a/foo -> skill name = foo
-namespace-b/foo -> skill name = foo
-```
+默认模式。候选版本来自 repository 的 Releases。
 
-且两者同时进入 graph，则失败。
+### Git
 
-这与 Package Identity 冲突不同：即使 package 名不同，项目激活视图仍只能拥有一个 `foo`。
+只有顶层 CLI/Project Manifest 显式指定后才进入。
 
-## Source conflict
-
-同一 Package Identity 不能在一部分依赖链使用 registry Release、另一部分使用 Git override。
-
-Project source override 一旦存在，就对该 Package Identity 的全部解析生效；若 override 的 Manifest identity/version 不满足依赖要求，解析失败。
-
-这避免 dependency confusion 和 provenance 漂移。
-
-## Frozen
-
-`frozen` 不执行普通求解：
-
-1. 校验 `manifest-digest`；
-2. 校验 Lock 的 Package Graph 自洽；
-3. 校验每条 top-level / transitive constraint 均被 Lock exact version 满足；
-4. 校验 source policy 与 Lock provenance 没有冲突；
-5. 直接返回 Lock 对应的 Resolution；
-6. 任一条件不满足即报错，不生成新版本选择。
-
-## Resolution 输出
-
-Resolution 至少包含：
+Git 模式至少锁定：
 
 ```text
-packages: exact package records
-edges: exact dependency edges
-software_requirements: aggregated requirements + provenance
-warnings: yanked/deprecated/non-portable source 等
+repository
+requested ref
+exact commit
+selected Package Root(s)
+content digest
 ```
 
-Resolution 不包含“应该下载哪些文件”，因为当前 Store/cache 状态尚未参与。
+Release 不存在时不能自动改用 Git。
 
-## Planner
+Git 与 Release 混用同一个 repository 的详细约束仍需单独设计；v0 应优先避免同一 project resolution 同时从同一 repo 的 Release 与 Git checkout 取不同 Package。
 
-Planner 接收纯 Resolution 与当前机器/项目状态：
+## 6. Resolver 输入
+
+概念接口：
 
 ```text
-plan(
-  resolution,
-  machine_store_state,
-  project_activation_state,
-  software_state,
-  trust_state,
-) -> InstallPlan
+resolve(
+  project_requirements,
+  release_source,
+  explicit_git_sources,
+  previous_lock?,
+  mode,
+) -> Resolution | ResolutionError
 ```
 
-Install Plan 至少分为五类动作：
-
-### Package fetch
-
-哪些 exact Package content 当前 Store 缺失，需要从哪个 immutable source 获取和验证。
-
-### Package keep
-
-哪些 content 已存在且 integrity 匹配，不需要重复获取。
-
-### Activation changes
-
-哪些 Project Skill View link 需要新增、切换或移除。
-
-### Software status
-
-哪些 Software Requirement 已满足、缺失、版本过低或当前平台无 Provider。
-
-### Approval requirements
-
-哪些动作需要用户授权，例如：
-
-- 首次使用一个项目 source override；
-- Provider 计划对宿主软件环境做修改；
-- 非 portable path source；
-- 其他策略层要求显式批准的来源。
-
-## “先计划，再执行”
-
-执行顺序固定为：
+`release_source` 对 GitHub 至少提供：
 
 ```text
-parse
-  -> resolve
-  -> validate graph
-  -> inspect machine state
-  -> build complete InstallPlan
-  -> present / authorize
-  -> fetch & verify packages
-  -> optional software provider actions
-  -> activate project links
-  -> write lock/state atomically
+available_releases(owner, repo)
+package_manifest(owner, repo, release, package)
+package_asset(owner, repo, release, package)
 ```
 
-在授权前允许的操作仅限读取本地状态、读取已批准 Package Index metadata 以及计算计划所必需的只读 source metadata。
+未来 Registry adapter 可以实现另一套 source interface，但不要求 GitHub dependency 先映射到 Registry ID。
 
-任何会改变 host 软件、Project Skill View、Package Store 最终状态或 Lock 的动作都属于执行阶段。
+## 7. 版本选择
 
-## 执行原子性
+普通 `sync`：
 
-Package fetch 可以先进入临时 cache，但只有校验成功的 content 才能原子进入 Store。
+1. previous lock 的 repository Release 仍满足当前全部 range 时优先保留；
+2. 需要更新时选择满足全部约束的候选 Release；
+3. 默认选择最高 compatible stable Release；
+4. prerelease 只有显式允许时参与；
+5. Package Artifact 在选中的 Release 中不存在时，该 Release 对相应 requirement 不可用。
 
-Project Skill View 采用 staging directory：
+冲突示例：
 
-1. 在 `.akm/.staging-<id>/skills` 创建全部目标 symlink；
-2. 验证每个 target 已存在且匹配 Lock；
-3. 原子替换 `.akm/skills`；
-4. 失败则保留旧 view。
+```text
+A requires owner/repo/x <2
+B requires owner/repo/y >=3
+```
 
-Lock 写入使用 temp file + atomic replace，避免产生半写文件。
+因为 x/y 属于同一 repository Release version 空间，没有一个 Release 同时满足，必须报告版本冲突。
 
-## remove
+## 8. Repository-wide top-level install
 
-remove 是“修改 Project Requirement + 重新求解”，不是对 Store 的破坏性操作。
+用户可以显式安装：
 
-若用户删除顶层 `A`：
+```text
+owner/repo@1.4.0
+```
 
-- 仍被其他顶层包需要的 transitive dependency 保留；
-- 完全不可达的 Package 从新 Lock 与 Project Skill View 消失；
-- Store content 进入可 GC 候选，而不是立即删除。
+这表示：
 
-## reverse dependency 与 `why`
+1. 选择 Release `1.4.0`；
+2. 枚举该 Release 中全部 `*.akm.tar.gz`；
+3. 每个 Artifact 校验为合法 Package；
+4. 将这些 Package 全部视为 top-level selected Packages；
+5. 继续解析它们的 dependency closure。
 
-Reverse Dependency 从 exact graph 反向索引，不单独持久化。
+Repository-wide target 只允许作为用户顶层意图，不允许 Package dependency 写成 `owner/repo`。
 
-`why C` 应能显示至少一条从顶层 requirement 到 `C` 的路径；remove/update plan 可以利用同一索引解释影响范围。
+## 9. Resolution 输出
 
-## 冲突错误模型
+至少包含：
 
-ResolutionError 不应只有字符串。至少区分：
+```text
+repositories:
+  exact GitHub Release or Git commit records
 
-- `NoVersionSolution`：版本约束无解，并带 derivation；
-- `DependencyCycle`：带 cycle path；
-- `SkillNameCollision`：带冲突 Package；
-- `SourceConflict`：带 source policy 与 dependency provenance；
-- `UnavailablePackage` / `UnavailableVersion`；
-- `IncompatiblePlatform`；
-- `InvalidManifest`。
+packages:
+  exact owner/repo/package selections
 
-CLI 最终只是这些结构化错误的一个 renderer。
+edges:
+  exact dependency edges
+
+common_software_requirements:
+  package -> [software] requirements
+
+warnings:
+  dependency checks that still require Agent inspection
+```
+
+Resolver 不安装软件，也不决定特殊依赖如何解决。
+
+## 10. Install Plan
+
+Planner 把 Resolution 与本地状态组合成：
+
+### Fetch
+
+- 哪些 Release Artifact 需要下载；
+- 哪些显式 Git source 需要 checkout；
+- 哪些 Package 已在 machine Store。
+
+### Verify
+
+- Asset digest；
+- safe extraction；
+- `package.name/version`；
+- `SKILL.md.name`；
+- `DEPENDENCIES.md` 存在。
+
+### Project Skill Library
+
+目标路径始终按：
+
+```text
+<owner>/<repo>/<package>/
+```
+
+创建/更新/移除 activation leaf。
+
+### Dependency Check
+
+- 对 `[software]` 中 AKM 已知常见软件运行只读 probe；
+- 更新项目侧 `DEPENDENCIES.md` Current status；
+- 标出仍需 Agent 检查的特殊依赖。
+
+AKM 不生成 `apt/brew/winget/...` 修复动作。
+
+## 11. 执行顺序
+
+```text
+parse project requirements
+  -> resolve repository releases / git commits
+  -> resolve package closure
+  -> build fetch plan
+  -> fetch & verify Package Artifacts
+  -> put immutable payload in machine Store
+  -> materialize hierarchical Project Skill Library
+  -> run common software probes
+  -> update project-local DEPENDENCIES.md
+  -> write Lock atomically
+```
+
+需要修改宿主软件环境的工作发生在 AKM 之后：Agent 读取 `DEPENDENCIES.md`，说明缺口，获得用户明确同意后再使用当前环境真实可用的方式处理。
+
+## 12. Frozen 与 offline
+
+### `frozen`
+
+只接受 Lock 已确定的 exact Release/Git commit 和 Package graph；Manifest/Project requirement 不一致就失败，不重新求解。
+
+### `offline`
+
+不访问 GitHub，也不 clone/fetch Git；只能使用 Lock 与本地 machine Store/cache 已存在内容。
+
+二者相互独立。
+
+## 13. remove / orphan / why
+
+删除顶层 target 后重新计算 dependency closure。
+
+新的 graph 中不可达 Package 从 Project Skill Library 移除；machine Store 内容进入 GC candidate。
+
+`why owner/repo/package` 从 Lock graph 反向构造依赖路径，不维护第二套 reverse-dependency 状态。
+
+## 14. 结构化错误
+
+至少区分：
+
+- `NoReleaseSolution`；
+- `UnavailableRelease`；
+- `UnavailablePackageAsset`；
+- `DependencyCycle`；
+- `InvalidPackageManifest`；
+- `GitSourceNotExplicit`；
+- `ArtifactIntegrityMismatch`；
+- `UnsafeArtifact`。
+
+执行器层的扁平 Skill name collision 不属于 core resolver error。
