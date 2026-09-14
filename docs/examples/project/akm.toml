@@ -1,0 +1,12 @@
+schema = 1
+
+[skills]
+"akira/ask-matt" = "^1.4"
+"akira/ngs" = "^2.0"
+"thirdparty/special-skill" = "^0.3"
+
+[sources."thirdparty/special-skill"]
+kind = "git"
+url = "https://github.com/example/special-skill.git"
+ref = "main"
+subdir = "skill"

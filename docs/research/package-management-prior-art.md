@@ -86,7 +86,20 @@
 - AKM 仍应自行下载后计算 SHA-256 并与受信 Package Index / Lock Record 比较，不能只相信下载 URL；
 - GitHub tag 不是 Package Identity，也不应成为依赖解析主键；Package Index 负责把 `Package Identity + Version` 映射到具体 Release Asset。
 
-## 6. 本轮形成的设计约束
+## 6. PubGrub 版本求解
+
+来源：[Dart pub solver design](https://github.com/dart-lang/pub/blob/master/doc/solver.md)
+
+PubGrub 的问题定义与 AKM 当前约束高度一致：给定 package versions 与 version constraints，选择一组满足 transitive dependencies 的版本；同一 package 只选择一个版本；无解时保留 incompatibility derivation 以解释冲突。它还允许按需获取候选版本的依赖信息，不要求预先加载整个 package universe。
+
+对 AKM 的影响：
+
+- 首个 resolver 实现优先采用 PubGrub 风格 incompatibility solver；
+- Package Index 可以作为 lazy dependency provider；
+- resolver 错误应保留结构化冲突推导，而不是只输出一条最终字符串；
+- AKM 领域额外要求的 dependency cycle 与 exported Skill name collision 在版本求解后独立校验。
+
+## 7. 本轮形成的设计约束
 
 1. Package version 使用 SemVer 2.0.0；version 一经发布内容不可变。
 2. Project Manifest 表达顶层需求；Project Lock 表达精确 transitive graph。

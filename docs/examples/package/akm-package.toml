@@ -1,0 +1,17 @@
+schema = 1
+
+[package]
+name = "akira/ask-matt"
+version = "1.4.0"
+repository = "https://github.com/Akira-TL/matt-skills"
+
+[dependencies.skills]
+"akira/domain-modeling" = "^1.2.0"
+"akira/codebase-design" = "^1.3.0"
+
+[dependencies.software]
+git = ">=2.40"
+github-cli = ">=2.50"
+
+[compatibility]
+platforms = ["linux", "macos", "windows"]
