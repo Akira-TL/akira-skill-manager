@@ -1,10 +1,10 @@
-# Dependency Runtime State v0 候选协议
+# Dependency Runtime State v0
 
-状态：Proposed
+状态：Accepted
 
 对应 Wayfinder：#8 `Define the external software dependency model`
 
-本文件只收敛 `.agents/.akm/dependencies.lock` 的本机状态职责。Package admission、Skill dependency resolution、immutable `DEPENDENCIES.md` 与 `akm-package.toml [software]` 的来源边界保持不变。
+本文件收敛 `.agents/.akm/dependencies.lock` 的本机状态职责。Package admission、Skill dependency resolution、immutable `DEPENDENCIES.md` 与 `akm-package.toml [software]` 的来源边界保持不变。对应 ADR：[`0010-dependency-runtime-state.md`](../adr/0010-dependency-runtime-state.md)。
 
 ## 1. `dependencies.lock` 只保存观察结果
 
@@ -17,7 +17,7 @@ DEPENDENCIES.md
 
 因此 `.agents/.akm/dependencies.lock` 不复制 requirement 文本或单文件 digest，只保存“当前这台机器观察到了什么”。
 
-候选 schema：
+Canonical schema：
 
 ```toml
 lock-version = 1
@@ -92,7 +92,7 @@ incompatible
 blocked
 ```
 
-建议语义：
+固定语义：
 
 - `unknown`：尚未检查，或检查结果不足以判断 requirement；
 - `satisfied`：已确认满足；

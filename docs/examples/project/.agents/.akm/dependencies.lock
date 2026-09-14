@@ -3,24 +3,18 @@ lock-version = 1
 [[package]]
 coordinate = "Akira-TL/matt-skills/ask-matt"
 content-digest = "sha256:3333333333333333333333333333333333333333333333333333333333333333"
-dependencies-doc-digest = "sha256:5555555555555555555555555555555555555555555555555555555555555555"
-
-[[package.software]]
-name = "git"
-requirement = ">=2.40"
-status = "satisfied"
-detected-version = "2.45.2"
-location = "/usr/bin/git"
-checked-at = "2026-09-14T17:20:00+08:00"
 
 [[package.software]]
 name = "gh"
-requirement = ">=2.45"
 status = "missing"
-checked-at = "2026-09-14T17:20:00+08:00"
+
+[[package.software]]
+name = "git"
+status = "satisfied"
+detected-version = "2.45.2"
+location = "/usr/bin/git"
 
 [[package.special]]
 name = "GitHub authentication"
 status = "unknown"
-checked-by = "agent"
 note = "Private repository access has not been checked yet."

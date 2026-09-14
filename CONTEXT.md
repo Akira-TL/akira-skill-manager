@@ -46,7 +46,7 @@ Package Root 中可选、不可变的 `DEPENDENCIES.md`。它是 Package author 
 
 ## Dependency State Lock
 
-项目本地 `.agents/.akm/dependencies.lock`。它保存 common software probe 与 Agent 对特殊依赖的当前观察结果，并关联 Package content/`DEPENDENCIES.md` digest；属于可重建本机状态，默认不提交版本控制。
+项目本地 `.agents/.akm/dependencies.lock`。它只保存当前机器的 dependency observations；Package `content-digest` 是唯一 freshness anchor，不复制 requirement、`DEPENDENCIES.md` digest、检查时间或授权信息。AKM core 维护 common software observations，Agent 维护 special observations；属于可删除重建的本机状态，默认不提交版本控制。
 
 ## Skill Dependency
 

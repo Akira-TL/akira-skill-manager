@@ -45,6 +45,7 @@
 - `.agents/.akm/akm.toml` 保存 top-level requirements，Release 用 version string，Git 用 `{ git = "<ref>" }`；用户批准的本地 Skill rename 写入 `[renames]`；同一 repository 不允许混用多个 Git ref 或 Release/Git source；
 - `.agents/.akm/akm.lock` 采用 canonical `requirement -> repository -> package` 三层结构，source provenance 只写一次，Package Record 只保存 `package-root`、`content-digest` 与 exact dependency edges；
 - `.agents/.akm/activation.lock` 只保存 `activation-name`、Package coordinate、`content-digest` 与 `mode`（`symlink` / `junction` / `copy`）；POSIX 未 rename 优先 symlink，Windows 未 rename 优先 junction，rename 一律 copy；managed drift 默认 fail closed；
+- `.agents/.akm/dependencies.lock` 只保存当前机器 dependency observations，Package `content-digest` 是唯一 freshness anchor；Common software 每次 `sync` / `doctor` 重新只读 probe，Special dependency observation 由 Agent 管理；该文件可随时删除重建；
 - AKM 只基础探测少量常见软件，不负责自动安装/修复宿主依赖。
 
 ## 核心关系
@@ -92,7 +93,6 @@ v0 不提前引入：
 
 ## 下一步仍需收敛
 
-- `.agents/.akm/dependencies.lock` 的最终字段与状态失效规则（当前见 Proposed [`dependency-runtime-state.md`](dependency-runtime-state.md)）；
 - version range 的最终 grammar；
 - Git Source Cache GC 的具体 LRU/size/age 策略；
 - optional dependencies / feature flags 是否需要进入后续版本。

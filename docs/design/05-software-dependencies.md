@@ -1,12 +1,14 @@
-# 软件依赖说明与本地状态模型
+# 软件依赖说明与本地状态模型 v0
 
-状态：Working Draft
+状态：Accepted
 
-`.agents/.akm/dependencies.lock` 的进一步精简候选见 [`dependency-runtime-state.md`](dependency-runtime-state.md)；在该候选正式 Accepted 前，本文件现有 state schema 仅作旧工作草案参考。
+对应 Wayfinder：#8 `Define the external software dependency model`
+
+运行时状态的 canonical schema 见 [`dependency-runtime-state.md`](dependency-runtime-state.md)，决策记录见 [`0010-dependency-runtime-state.md`](../adr/0010-dependency-runtime-state.md)。
 
 ## 1. Package 最低条件仍只有 `SKILL.md`
 
-软件依赖能力是可选增强，不影响普通 Skill 安装。
+软件/环境依赖能力是可选增强，不影响普通 Skill 安装。
 
 一个 Package 可以只有：
 
@@ -20,35 +22,35 @@ foo/
 ```text
 foo/
 ├── SKILL.md
-├── akm-package.toml       # optional structured dependencies/software
+├── akm-package.toml       # optional structured Skill/software requirements
 └── DEPENDENCIES.md        # optional Agent-readable special requirements
 ```
 
-两种可选文件职责不同。
+两种可选文件职责不同，AKM 不因为缺失它们而拒绝 Package。
 
 ## 2. 三层依赖模型
 
 ```text
 Skill dependency
 → optional akm-package.toml [dependencies]
-→ AKM 自动解析/安装
+→ AKM Resolver 自动解析/安装
 
 常见可机械探测软件
 → optional akm-package.toml [software]
-→ AKM 只读 probe
+→ AKM core 只读 probe
 → .agents/.akm/dependencies.lock
 
 复杂软件/硬件/服务/数据/授权条件
 → optional immutable DEPENDENCIES.md
-→ Agent 检查、解释
+→ Agent 检查/解释
 → .agents/.akm/dependencies.lock
 ```
 
-没有这些文件时，AKM 不猜测。
+没有声明时，AKM 不从 `SKILL.md` 自然语言、目录名或脚本内容猜测 requirement。
 
-## 3. `DEPENDENCIES.md` 永不写状态
+## 3. `DEPENDENCIES.md` 永不写当前状态
 
-`DEPENDENCIES.md` 存在时，它属于 immutable Package payload，只写：
+`DEPENDENCIES.md` 存在时属于 immutable Package payload，只描述：
 
 - requirement；
 - check 方法；
@@ -66,21 +68,13 @@ Skill dependency
 - Requirement: Blender 4.3+ with Example Add-on enabled.
 - Check: verify version and Add-on state.
 - Resolution: explain the gap and ask before modifying Blender.
-
-## Agent procedure
-
-1. Read `.agents/.akm/dependencies.lock` when available.
-2. Check unresolved requirements.
-3. Never modify this file.
-4. Record observations in `.agents/.akm/dependencies.lock`.
-5. Ask before environment-changing actions.
 ```
 
-Package 升级不需要三方合并该文件。
+当前机器 observation 永远写 `.agents/.akm/dependencies.lock`，不得回写 `DEPENDENCIES.md`。
 
 ## 4. `[software]` 是可选结构化 probe 输入
 
-如果 Package 有 Manifest，可以声明：
+Package Manifest 可以声明少量 AKM 内建 probe 支持的常见软件：
 
 ```toml
 [software]
@@ -90,52 +84,65 @@ python = ">=3.11"
 node = ">=22"
 ```
 
-AKM 对已支持的软件最多：
+AKM core 对这些 requirement 最多：
 
 - 找 executable/runtime；
 - 尝试读取版本；
-- 判断 requirement；
-- 写本地 observation。
+- 判断当前 requirement 是否满足；
+- 写本机 observation。
 
-AKM 不执行安装、升级、PATH 修改、系统配置、驱动/服务管理。
+AKM core 不执行：
 
-没有 Manifest 就没有结构化 common software requirement；这不影响 Skill 安装。
+- 安装/升级/删除软件；
+- 自动选择 apt/brew/winget/choco 等 provider；
+- 修改 PATH；
+- 登录或写凭据；
+- 驱动/服务/系统配置变更；
+- Package 自定义系统安装脚本。
 
 ## 5. `.agents/.akm/dependencies.lock`
 
-当前宿主状态统一保存：
-
-```text
-<project>/.agents/.akm/dependencies.lock
-```
-
-它是可重建的本机状态，默认不提交。
-
-示意：
+它是当前机器的可重建 observation state，默认不提交版本控制：
 
 ```toml
 lock-version = 1
 
 [[package]]
 coordinate = "Akira-TL/matt-skills/ask-matt"
-content-digest = "sha256:..."
-dependencies-doc-digest = "sha256:..."
+content-digest = "sha256:3333333333333333333333333333333333333333333333333333333333333333"
 
 [[package.software]]
 name = "git"
-requirement = ">=2.40"
 status = "satisfied"
 detected-version = "2.45.2"
 location = "/usr/bin/git"
 
+[[package.software]]
+name = "gh"
+status = "missing"
+
 [[package.special]]
 name = "GitHub authentication"
 status = "unknown"
-checked-by = "agent"
-note = "Private repository access has not been checked."
+note = "Private repository access has not been checked yet."
 ```
 
-状态先保持：
+Package `content-digest` 是唯一 freshness anchor。`dependencies.lock` 不重复：
+
+```text
+dependencies-doc-digest
+manifest-digest
+software requirement
+checked-at
+checked-by
+probe command
+provider/package-manager choice
+install command
+```
+
+## 6. Observation status
+
+Software 与 Special observation 共用：
 
 ```text
 unknown
@@ -145,48 +152,101 @@ incompatible
 blocked
 ```
 
-## 6. 状态失效
+语义：
 
-以下变化使相关 observation stale/unknown：
+- `unknown`：尚未检查，或证据不足以判断；
+- `satisfied`：已经确认满足；
+- `missing`：所需对象/能力不存在；
+- `incompatible`：对象存在，但版本或兼容条件不满足；
+- `blocked`：权限、策略、服务不可访问等使检查或满足 requirement 无法完成。
 
-- Package content digest 改变；
-- `DEPENDENCIES.md` digest 改变；
-- `[software]` requirements 改变；
-- executable/location 消失；
-- 用户/Agent 要求重新检查；
-- Agent 判断外部环境发生变化。
+## 7. Common software 每次 `sync` / `doctor` 重新 probe
 
-如果 Package 根本没有 `DEPENDENCIES.md`，就没有特殊依赖说明需要检查；如果没有 `[software]`，就没有 common probe 输入。
-
-## 7. Package Store 与项目激活分离
-
-原始 Package Store 始终 immutable。项目 executor-visible Skill 直接位于：
+Common software probe 被限定为便宜的只读检查，所以 v0 不把 software observation 当长期缓存：
 
 ```text
-<project>/.agents/skills/<activation-name>
+sync
+→ 对当前 resolved graph 中 [software] 重新 probe
+
+doctor
+→ 对当前 resolved graph 中 [software] 重新 probe
 ```
 
-未 rename Package 可以直接链接 Store；发生用户批准的 rename 时，项目 activation view 可以 materialize 并只对激活身份做必要改写。AKM 的本机 dependency observation 仍只写 `.agents/.akm/dependencies.lock`，不回写 Package Store。
+因此不需要 TTL、时间戳或复杂环境 fingerprint。
 
-## 8. Agent 边界
+当 Package `content-digest` 变化时，该 Package 原有 dependency state 全部失效：
 
-特殊依赖存在时：
+- software 重新 probe；
+- special observation 删除，回到未保存 observation 的状态。
 
-1. Agent 读取 immutable `DEPENDENCIES.md`；
-2. 读取 `.agents/.akm/dependencies.lock`；
-3. 做只读检查；
-4. 解释缺口；
-5. 给出解决方案；
-6. 涉及安装、升级、登录、下载、配置、服务或其他宿主修改时先取得用户批准；
-7. 完成后重新检查，只更新 `.agents/.akm/dependencies.lock`。
+## 8. Special dependency 由 Agent 管理
 
-## 9. 可复用 Agent 能力仍应成为 Skill dependency
+AKM core 不把 `DEPENDENCIES.md` 强行解析成结构化 requirement schema。
 
-如果某项依赖本质是另一个 Agent Skill 能力，而作者希望 AKM 自动安装它，就在可选 Manifest 中声明：
+Agent 完成只读检查后可以记录：
+
+```toml
+[[package.special]]
+name = "GitHub authentication"
+status = "satisfied"
+note = "Target private repository is readable with the current identity."
+```
+
+同一 Package 内 `name` 应唯一。不存在对应 special record 表示没有已保存 observation，不要求提前写一个 `unknown` record。
+
+Special observation 不按时间自动过期；以下情况重新检查：
+
+- Package `content-digest` 变化；
+- 用户或 Agent 明确要求重新检查；
+- Agent 已知相关外部环境发生变化。
+
+需要安装、升级、登录、下载、修改配置、启停服务或其他环境写入时，仍必须先取得用户批准；`dependencies.lock` 不是授权记录。
+
+## 9. Writer ownership
+
+AKM core 负责：
+
+- Package `coordinate` / `content-digest`；
+- `[[package.software]]` records；
+- stale/orphan Package state 清理。
+
+Agent 负责：
+
+- `[[package.special]]` records。
+
+任一 writer 原子重写文件时，都必须保留另一类仍有效 records。
+
+Canonical output：
+
+1. `[[package]]` 按 coordinate UTF-8 bytes 升序；
+2. 每个 Package 的 software 按 `name` 升序；
+3. special 按 `name` 升序；
+4. UTF-8、LF、无生成注释；
+5. 不写时间戳。
+
+Package 若没有 `[software]` 且没有 special observations，可以完全省略。
+
+## 10. 可删除、可重建
+
+删除 `.agents/.akm/dependencies.lock` 只会导致：
+
+- 下一次 `sync` / `doctor` 重新做 common software probe；
+- Special requirement 在需要时由 Agent 重新检查。
+
+不会改变：
+
+- `.agents/.akm/akm.lock` resolution；
+- Package Store；
+- source provenance；
+- `.agents/skills/` activation。
+
+## 11. 可复用 Agent 能力仍使用 Skill dependency
+
+如果 requirement 本质上是另一个 Agent Skill 能力，而作者希望 AKM 自动安装，应声明：
 
 ```toml
 [dependencies]
 "owner/repo/helper-skill" = "^1.0"
 ```
 
-不要通过 repository shared runtime directory 隐式共享。
+不要通过 repository shared runtime directory、`DEPENDENCIES.md` 或 software probe 隐式表达 Skill dependency。

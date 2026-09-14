@@ -29,7 +29,7 @@ Matt Engineering 使用 canonical workflow role 名称作为 GitHub label。映�
 - AKM 项目状态统一放在 `.agents/.akm/`：`akm.toml` 保存 top-level requirements 与用户批准的 `[renames]`，`akm.lock` 固定为 canonical `requirement -> repository -> package` 三层结构，`activation.lock` 与 `dependencies.lock` 分别保存本机激活状态和依赖观察；同一 repository 不允许多个 source binding。
 - resolved Skill 直接扁平激活到 `.agents/skills/<activation-name>`；默认名等于 `SKILL.md.name`。同名冲突必须提示用户为新安装项 rename 或放弃，禁止自动覆盖/自动改名；POSIX 未 rename 优先 symlink、Windows 未 rename 优先 junction、rename 一律 copy；managed activation 漂移 fail closed；v0 不做 destructive automatic Package Store GC。
 - 运行时共享能力必须显式写成 Skill dependency；不允许 Package 依赖 Package Root 外的 runtime 文件。
-- 可选 `DEPENDENCIES.md` 用于 Agent 检查复杂软件/环境依赖；AKM 只对可选 Manifest 中少量常见软件要求做基础只读探测，不负责自动修复宿主环境。
+- 可选 `DEPENDENCIES.md` 用于 Agent 检查复杂软件/环境依赖；AKM 只对可选 Manifest 中少量常见软件要求做基础只读探测，不负责自动修复宿主环境。`.agents/.akm/dependencies.lock` 只保存当前机器 observations，以 Package `content-digest` 为唯一 freshness anchor；Common software 每次 `sync` / `doctor` 重新 probe，Special observation 由 Agent 管理。
 - 旧 `/home/Akira/Projects/akira-skills` 仅作为迁移与既有行为参考，不在其中实现 AKM。
 
 ## 工程约定

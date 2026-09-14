@@ -189,10 +189,12 @@ v0 的 executor discovery 面直接就是 `.agents/skills/`，不再建立 AKM �
 只处理可选依赖增强：
 
 - Manifest `[software]` 的 common probes；
-- `DEPENDENCIES.md` digest / Agent inspection state；
-- `.agents/.akm/dependencies.lock` 读写与失效。
+- 每次 `sync` / `doctor` 对当前 resolved graph 重新执行便宜的只读 software probe；
+- Package `content-digest` 作为 dependency state 唯一 freshness anchor；
+- `.agents/.akm/dependencies.lock` 中 software observations 的读写、orphan/stale 清理；
+- 与 Agent 管理的 `[[package.special]]` observations 做保留式原子合并。
 
-不提供 install/upgrade/remove/configure。
+不解析 `DEPENDENCIES.md` 为结构化 requirement，不提供 install/upgrade/remove/configure。
 
 ## `application`
 
