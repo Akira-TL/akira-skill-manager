@@ -84,13 +84,29 @@ Package Snapshot 的 canonical 内容身份。v0 使用 `SKILOOM-PACKAGE-V1`：�
 
 Skiloom 安装 Skill 时由用户选择的目标目录。Target 可以来自已知 Host preset，也可以是用户指定的任意目录；`.agents/skills` 只是可能的 Target，不是 Skiloom Package Store。Target 内按 `<target>/<activation-name>` 平铺 Skill。
 
+## Target Installed Graph
+
+一个 Target 的统一已接受依赖图，由该 Target 全部 Direct Install Requirements 的 resolved dependency closure 并集组成；同一 Package coordinate 在同一 Target 只能有一个 resolved identity 和一个 projection name。Install、remove、update 都以整个 Target graph 为一致性边界，不能把共享依赖当成各 root 私有副本。
+
 ## Host Projection
 
-把 immutable Package Store 中的 Package materialize 到用户选择的 Target，使目标软件能够发现和使用 Skill。Projection 是一次安装的目标侧结果：默认可用 link/junction 指向 Store；发生显式 rename 或用户要求本地可编辑副本时使用 copy。具体 Target 不决定 Package identity、source resolution 或 content digest。
+把 immutable Package Store 中的 Package materialize 到用户选择的 Target，使目标软件能够发现和使用 Skill。普通无变换 projection 使用 link/junction 指向 Store；只有 rename、dependency routing 等 Skiloom 可确定性重建的变换才使用 managed transformed copy。用户自定义修改不属于 managed projection。
+
+## Managed Transformed Projection
+
+Skiloom 为 rename 或 dependency routing 等确定性变换生成并继续全权管理的 copy。它可以从当前 accepted Package Snapshot 与 Target projection metadata 重建并自动更新；底层虽是 copy，但不表示用户拥有本地编辑权。
+
+## Detached Override
+
+用户显式把一个 managed projection 原地转换成普通本地 copy 后形成的 user-owned dependency override。它继续占据原 Package coordinate 在该 Target 的 dependency slot 并可被宿主发现，但其 bytes 退出 Skiloom content ownership；Skiloom只保留 detach 时的 baseline provenance 用于诊断与提醒，后续相关 update 必须提示用户自行适配，不能自动覆盖、合并或宣称本地内容满足新的版本约束。
 
 ## Activation Rename
 
-对 resolved Package 的 projected Skill identity 改名。Rename 不改变 Package coordinate、source resolution 或 Package Store `content-digest`；Skiloom 在 Target 中用 copy materialize 合法 projection view，并同步使顶层 `SKILL.md.name == <new-name>`。为灾难恢复，非默认 rename 作为稀疏 projection override 写入 Target Recovery Marker。
+对 resolved Package 的 projected Skill identity 改名。Rename 不改变 Package coordinate、source resolution 或 Package Store `content-digest`；Skiloom 用 Managed Transformed Projection 同步修改目录名与顶层 `SKILL.md.name`，并继续自动更新该 projection。为灾难恢复，非默认 rename 作为稀疏 projection override 写入 Target Recovery Marker。
+
+## Dependency Routing Overlay
+
+当某个 declared Skill Dependency 在 Target 中使用非默认 projection name 时，Skiloom 对其直接 reverse dependents 生成确定性的 Agent-facing routing metadata，使依赖者明确看到该 dependency 的 package identity、原始 Skill name 与实际 projected name。该 overlay 只解决 capability routing，不把 Target 目录名或跨 Package 文件路径变成稳定 ABI。
 
 ## Target Identity
 
@@ -102,7 +118,7 @@ Skiloom 安装 Skill 时由用户选择的目标目录。Target 可以来自已�
 
 ## Target Recovery Marker
 
-每个 Skiloom-managed Target 根目录中的 `.skiloom-state` 轻量恢复锚点。它记录 `target-id`、Target Generation、用户直接安装的 top-level roots，以及恢复目标侧语义所需的 copy/rename 标记；不展开 transitive dependency graph，也不是日常运行的完整安装数据库。Machine Registry 丢失时，Skiloom 可从这些 roots 重新解析依赖并形成新的 recovery candidate。
+每个 Skiloom-managed Target 根目录中的 `.skiloom-state` 轻量恢复锚点。它记录 `target-id`、Target Generation、用户直接安装的 top-level roots，以及恢复目标侧语义所需的 rename、managed transform 与 Detached Override 等稀疏标记；不展开 transitive dependency graph，也不保存用户修改后的 bytes。Machine Registry 丢失时，Skiloom 可从这些 roots 重新解析依赖并形成新的 recovery candidate，同时不得覆盖 marker 声明的 user-owned override。
 
 ## Package Store GC Boundary
 
