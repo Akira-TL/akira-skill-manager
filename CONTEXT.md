@@ -166,7 +166,7 @@ Skiloom 自己发布的标准 Skill Packages，用于让 Agent 发现、管理�
 
 ## Reproducible Export
 
-用户显式生成的单文件可传播安装清单，用于跨机器或 CI 精确复现某次已解析安装。普通安装不持续维护 portable lock；需要 reproducibility 时从 Machine Registry 导出完整 exact resolution，再由另一环境显式导入/恢复。
+用户显式生成的可传播 Skill 环境产物，用于跨机器或 CI 恢复一个状态一致的 Target。导出分为“依赖导出”和“完整导出”：两者都包含 TOML 精确清单以及全部 Skiloom 受管 Package 的实际内容；完整导出另外封装 Detached Override 与其他未受管 Skill 的当前内容；改名、依赖路由等可确定性重建的受管变换只记录规则，不额外封装变换后的副本字节。所有封装内容都必须通过摘要校验，因此导入可以离线完成；导入到新环境时重新选择 Target 并取得新的 `target-id`，允许在明确提醒后与已有不冲突 Skill 合并，但同名或同路径冲突必须失败。
 
 ## Agent Bootstrap
 
