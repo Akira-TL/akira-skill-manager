@@ -56,29 +56,13 @@ Package Root 中可选、不可变的 `DEPENDENCIES.md`。它是 Package author 
 
 可选 Package Manifest 中显式声明的对另一个 Skill Package 的依赖。GitHub 模式使用 `<owner>/<repo>/<package>` 定位目标并附加 Release version range；运行时共享能力必须通过 Skill Dependency 表达，而不是跨 Package 文件共享。
 
-## Project Requirement
+## Direct Install Requirement
 
-项目主动声明的顶层 GitHub install target，可以是 `<owner>/<repo>/<package>` 或 `<owner>/<repo>`；前者选择一个 Skill，后者选择 source snapshot 中全部发现的 Skill Package。
-
-## Project Intent
-
-项目在 `.agents/.skiloom/skiloom.toml [skills]` 中声明的允许范围与 source intent。它描述“项目允许什么”，不等于当前实际安装的 exact version/commit。
-
-## Confirmed Resolution
-
-项目已经明确接受并写入 `.agents/.skiloom/skiloom.lock` 的 exact repository snapshots、Package identities 与 dependency graph。普通 `sync` 只恢复已有 Confirmed Resolution；只有 initial resolution 或显式 update 在接受后才能替换它。
-
-## Candidate Repository Set
-
-一次 initial resolution 或显式 re-resolution 产生的完整 repository source binding 集合。Transitive dependency 可以把新的 GitHub repository 提名进 candidate graph，但只有完整 Candidate Repository Set 被 acceptance decision 覆盖后，它才可以进入 Confirmed Resolution；普通 replay 不扩张该集合。
-
-## Source Authorization Delta
-
-Candidate Repository Set 相对当前 Confirmed Resolution 的 repository/source 变化事实，包括 repository 新增/移除、source-kind 变化与 exact Release/Git binding 变化。Non-interactive acceptance policy 必须基于完整 previous/candidate sets 与该 delta 做整份 candidate 的 accept/reject，而不是把 resolver 成功本身当授权。
+用户对某个 Target 主动提出的 top-level Skill 安装要求。Release requirement 保存 Package coordinate + version requirement；Git requirement 保存 Package coordinate + requested ref。普通安装的 Machine Registry 保存完整当前状态，而 Target Recovery Marker 只保留这些 direct roots，不展开传递依赖。
 
 ## Resolved Graph
 
-Skiloom 根据 Project Requirement、exact repository source snapshots、`SKILL.md` discovery 与可选 Manifest 求出的完整已知 dependency graph。没有 Manifest 的 Skill 是合法 leaf node；Skill dependency cycle 本身合法，只要 repository source/version constraints 可以形成完整 deterministic resolution。
+Skiloom 根据 Direct Install Requirement、exact repository source snapshots、`SKILL.md` discovery 与可选 Manifest 求出的完整已知 dependency graph。没有 Manifest 的 Skill 是合法 leaf node；Skill dependency cycle 本身合法，只要 repository source/version constraints 可以形成完整 deterministic resolution。
 
 ## Package Snapshot
 
@@ -88,37 +72,33 @@ Skiloom 根据 Project Requirement、exact repository source snapshots、`SKILL.
 
 Package Snapshot 的 canonical 内容身份。v0 使用 `SKILOOM-PACKAGE-V1`：只允许 regular files，按 relative path 的原始 UTF-8 bytes 排序，只编码 path、executable bool、file size 与 exact bytes 的 SHA-256；时间戳、owner/group、普通权限和 archive metadata 不参与。最终表达为 `sha256:<64 lowercase hex>`。
 
-## Project Requirement Record
+## Exact Installation Resolution
 
-`.agents/.skiloom/skiloom.lock` 中对 `.agents/.skiloom/skiloom.toml [skills]` 顶层 requirement 的规范化语义记录。Release requirement 保存 coordinate + version requirement；Git requirement 保存 coordinate + requested ref。`frozen` 比较 Requirement Set 语义而不是 `skiloom.toml` 原始 bytes。
-
-## Repository Lock Record
-
-`.agents/.skiloom/skiloom.lock` 中 source provenance 的唯一记录。Repository coordinate 使用 canonical lowercase owner/repo；Release source 保存规范化 SemVer、actual tag、exact commit 与 immutable signal，Git source 保存 exact commit。Package Record 不重复这些字段。GitHub 后续 rename/transfer 不自动改写既有 Lock provenance。
-
-## Package Lock Record
-
-`.agents/.skiloom/skiloom.lock` 中一个已解析 Package 的精简记录，只保存完整 coordinate、actual package-root、Package Content Digest 与 exact manifest-declared dependency edges；依赖边只写 `owner/repo/package`，其 exact source 由对应 Repository Lock Record 唯一决定。
+某次已接受安装在本机 Machine Registry 中保存的完整精确解析结果，包括 canonical repository/source provenance、Release actual tag / exact commit 或 Git exact commit、实际 Package Root、Package Content Digest 与 exact dependency edges。它是日常 update/remove/doctor 的机器状态；只有用户显式导出时才变成可传播的 Reproducible Export，不要求项目长期维护 lock 文件。
 
 ## Package Store
 
-机器级共享的不可变 Skill Package Snapshot 存储，直接以 Package Content Digest 作为 key。不同 repository/source 只要 snapshot 内容完全相同就复用同一 Store entry；source provenance 保存在 Lock，不进入 Store key。宿主环境检查状态不写回 Store。
+机器级共享的不可变 Skill Package Snapshot 存储，直接以 Package Content Digest 作为 key。不同 repository/source 只要 snapshot 内容完全相同就复用同一 Store entry；source provenance 保存在 Machine Registry 的 Exact Installation Resolution 中，需要传播时进入显式 Reproducible Export，不进入 Store key。宿主环境检查状态不写回 Store。
 
-## Project Skill Activation
+## Target
 
-项目中 executor-visible 的 Skill 直接扁平位于 `.agents/skills/<activation-name>`。默认 activation name 等于 `SKILL.md.name`；不同 source 的同名 Skill 在这里形成真实冲突，Skiloom 必须提示用户为新安装项 rename 或放弃，不能自动覆盖。
+Skiloom 安装 Skill 时由用户选择的目标目录。Target 可以来自已知 Host preset，也可以是用户指定的任意目录；`.agents/skills` 只是可能的 Target，不是 Skiloom Package Store。Target 内按 `<target>/<activation-name>` 平铺 Skill。
+
+## Host Projection
+
+把 immutable Package Store 中的 Package materialize 到用户选择的 Target，使目标软件能够发现和使用 Skill。Projection 是一次安装的目标侧结果：默认可用 link/junction 指向 Store；发生显式 rename 或用户要求本地可编辑副本时使用 copy。具体 Target 不决定 Package identity、source resolution 或 content digest。
 
 ## Activation Rename
 
-项目本地对 resolved Package 的 runtime Skill identity 改名。用户批准后写入 `.agents/.skiloom/skiloom.toml [renames]`。Rename 不改变 Package coordinate、source resolution 或 Package Store `content-digest`；Skiloom 在 `.agents/skills/<new-name>` materialize 合法 activation view，并同步使顶层 `SKILL.md.name == <new-name>`。
+对 resolved Package 的 projected Skill identity 改名。Rename 不改变 Package coordinate、source resolution 或 Package Store `content-digest`；Skiloom 在 Target 中用 copy materialize 合法 projection view，并同步使顶层 `SKILL.md.name == <new-name>`。为灾难恢复，非默认 rename 作为稀疏 projection override 写入 Target Recovery Marker。
 
-## Activation State Lock
+## Target Recovery Marker
 
-项目本地 `.agents/.skiloom/activation.lock`。每个 `[[skill]]` 只保存 `activation-name`、Package coordinate、原始 Package Content Digest 与本机 materialization mode（`symlink` / `junction` / `copy`）。POSIX 未 rename 优先 symlink，Windows 未 rename 优先 junction，rename 一律 copy。它用于安全 update/remove/doctor；missing activation 可自动重建，modified/replaced activation 默认 fail closed；属于可重建本机状态，默认不提交版本控制。
+每个 Skiloom-managed Target 根目录中的 `.skiloom-state` 轻量恢复锚点。它只记录用户直接安装的 top-level roots，以及恢复目标侧语义所需的 copy/rename 标记；不展开 transitive dependency graph，也不是日常运行的完整安装数据库。Machine Registry 丢失时，Skiloom 可从这些 roots 重新解析依赖并形成新的恢复 candidate。
 
 ## Package Store GC Boundary
 
-Skiloom v0 不执行 destructive automatic Package Store GC。项目 remove 只移除 activation/state，不删除共享 Store entry；Git Source Cache 可以独立做 LRU/size/age pruning。未来只有引入 machine-wide project/reference registry、能够证明 digest 没有任何活跃项目引用后，才重新定义 destructive Store GC。
+Skiloom v0 不执行 destructive automatic Package Store GC。移除某个 projection 或 Direct Install Requirement 不直接删除共享 Store entry；Git Source Cache 可以独立做 LRU/size/age pruning。SQLite 不维护项目 registry，因此未来若要 destructive Store GC，必须另行设计不依赖隐式项目路径追踪的安全可达性/引用证明机制。
 
 ## Common Software Requirement
 
@@ -130,20 +110,32 @@ Skiloom v0 不执行 destructive automatic Package Store GC。项目 remove 只�
 
 ## Install Plan
 
-在安装/同步前形成的 source 获取、Skill discovery、Package snapshot、Store 变化、`.agents/skills/` 扁平 activation preflight/rename 以及依赖检查计划。Skiloom 不把缺失宿主软件自动转换为系统安装动作。
+在安装/同步前形成的 source 获取、Skill discovery、Package snapshot、Store 变化、Target projection preflight/rename 以及依赖检查计划。Skiloom 不把缺失宿主软件自动转换为系统安装动作。
 
 ## Skiloom Public Namespace
 
-Skiloom v0 的公开 token 是 `skiloom`：CLI 为 `skiloom`，project state 位于 `.agents/.skiloom/`，Project Intent/Lock 为 `skiloom.toml` / `skiloom.lock`，Package/Repository optional metadata 为 `skiloom-package.toml` / `skiloom-repo.toml`，公开 Package Snapshot format identifier 为 `SKILOOM-PACKAGE-V1`。旧 `AKM / akm` 只属于 pre-standard working draft，不形成 v0 compatibility alias。
+Skiloom v0 的公开 token 是 `skiloom`：CLI 为 `skiloom`，Package/Repository optional metadata 为 `skiloom-package.toml` / `skiloom-repo.toml`，公开 Package Snapshot format identifier 为 `SKILOOM-PACKAGE-V1`。普通安装不要求项目级 `skiloom.toml` / `skiloom.lock`；目标目录用 `.skiloom-state` 保留轻量恢复锚点，完整机器安装状态由 Skiloom Home 的 Machine Registry 管理。`.agents/skills` 等宿主目录只是 Target。旧 `AKM / akm` 只属于 pre-standard working draft，不形成 v0 compatibility alias。
 
 ## Reference Implementation Architecture
 
-Skiloom 官方 reference implementation 使用 Node.js + TypeScript + npm 作为主控制面与发行方式：Node.js >=22，开发/release 主线为 Node 24 LTS，公开 npm package / executable 均为 `skiloom`。复杂计算或底层热点允许使用预编译 Rust/C/C++ 等 standalone native helper，但它们只能位于窄的内部 seam 后，不能独立拥有网络、凭据、用户授权、Project/Lock 写入或 activation side effects；协议 authority 始终是 Source Spec + versioned conformance fixtures。
+Skiloom 官方 reference implementation 使用 Node.js + TypeScript + npm 作为主控制面与发行方式：Node.js >=22，开发/release 主线为 Node 24 LTS，公开 npm package / executable 均为 `skiloom`。复杂计算或底层热点允许使用预编译 Rust/C/C++ 等 standalone native helper，但它们只能位于窄的内部 seam 后，不能独立拥有网络、凭据、用户授权、Machine Registry 写入或 Target destructive mutation；协议 authority 始终是 Source Spec + versioned conformance fixtures。
 
-## Skiloom Core
+## Machine Registry
 
-Skiloom 面向独立实现的最小互操作协议面，只标准化会改变 Package discovery、dependency graph、source resolution、Confirmed Resolution、Package Content Digest 或 activation ownership 的可观察语义；CLI UX、缓存/Store 物理布局、平台 materialization 优化与宿主探测实现不因 reference manager 采用而自动成为 Core。
+Skiloom Home 中的 machine-local SQLite 状态库，是普通安装日常管理的完整机器状态：可保存 exact source/resolution、dependency graph、Store inventory 与 Target projection/ownership 信息。它不登记项目身份、不建立项目 registry，也不引入 `project.id`。数据库丢失时可用 Target Recovery Marker 重新解析 top-level roots；该恢复不承诺得到原先完全相同的 transitive resolution。
 
-## Core Conformance Class
+## Catalog
 
-Skiloom Core 的可测试能力声明。Class P 负责 deterministic Package model，Class R 在 P 之上负责 source/resolution/Lock，Class A 在 R 之上负责 project activation safety；只有同一 Core version 同时通过 P、R、A 的实现才是 Full Core Manager。Host Observation 是独立 extension，不属于 Full Core conformance。
+用于发现和比较 Skill 的外部目录层。Catalog 可以提供候选、展示元数据与质量/安全信号，但不能成为 Skiloom v0 source/version/content authority；进入 Core 前必须归一成可验证的 source candidate。
+
+## First-party Skill Suite
+
+Skiloom 自己发布的标准 Skill Packages，用于让 Agent 发现、管理、诊断和创作 Skills。它们走与第三方 Package 相同的 source、resolution、Store、Target projection 与 ownership 流程，不拥有系统级特权路径。
+
+## Reproducible Export
+
+用户显式生成的单文件可传播安装清单，用于跨机器或 CI 精确复现某次已解析安装。普通安装不持续维护 portable lock；需要 reproducibility 时从 Machine Registry 导出完整 exact resolution，再由另一环境显式导入/恢复。
+
+## Agent Bootstrap
+
+把 First-party Skill Suite 显式安装到用户选择 Target 的首次启用过程。npm 安装本身不修改任何 Skill Target；bootstrap 经一次明确授权后，后续 Agent 可以通过已安装的 Skiloom Skills 无感编排 Skiloom，但 source/graph 变化仍受普通 candidate acceptance 约束。
