@@ -58,7 +58,7 @@ Package Root 中可选、不可变的 `DEPENDENCIES.md`。它是 Package author 
 
 ## Direct Install Requirement
 
-用户对某个 Target 主动提出的 top-level Skill 安装要求。Release requirement 保存 Package coordinate + version requirement；Git requirement 保存 Package coordinate + requested ref。普通安装的 Machine Registry 保存完整当前状态，而 Target Recovery Marker 只保留这些 direct roots，不展开传递依赖。
+用户对某个 Target 主动提出的 top-level Skill 安装要求。Release 安装可以显式保存 Package coordinate + version requirement，也可以不指定版本；显式版本要求在后续更新中继续作为约束，不指定版本则表示更新时允许选择当前可解析到的最新合法版本。Git 安装保存 Package coordinate + requested ref。普通安装的 Machine Registry 保存完整当前状态，而 Target Recovery Marker 只保留这些 direct roots，不展开传递依赖。
 
 ## Resolved Graph
 
@@ -94,7 +94,7 @@ Skiloom 安装 Skill 时由用户选择的目标目录。Target 可以来自已�
 
 ## Target Installed Graph
 
-一个 Target 的统一已接受依赖图，由该 Target 全部 Direct Install Requirements 的 resolved dependency closure 并集组成；同一 Package coordinate 在同一 Target 只能有一个 resolved identity 和一个 projection name。Install、remove、update 都以整个 Target graph 为一致性边界，不能把共享依赖当成各 root 私有副本。
+一个 Target 的统一已接受依赖图，由该 Target 全部 Direct Install Requirements 的 resolved dependency closure 并集组成；同一 Package coordinate 在同一 Target 只能有一个 resolved identity 和一个 projection name。安装、移除、更新都以整个 Target graph 为一致性边界；更新不提供只刷新某个局部依赖闭包的模式，而是按照所有直接安装要求重新解析整个图，使系列 Skill、共享依赖和传递依赖保持同一批次的一致状态。
 
 ## Host Projection
 
