@@ -141,9 +141,9 @@ preferred executable                = skiloom
 preferred source/module token       = skiloom
 ```
 
-具体实现语言尚未选择，因此 Core protocol 不绑定 PyPI/npm/crates.io 等任一 ecosystem。当前核查这些常见 registry 的 exact `skiloom` 名称均未发现已存在 package；真正发布前必须再次核查并取得对应 namespace。
+Core protocol 仍不绑定任何实现语言或 package ecosystem；但 reference implementation 已由 ADR 0017 选择 Node.js + TypeScript，并以 npm package `skiloom` 作为主要发行入口。此前核查 exact `skiloom` npm 名称时未发现已存在 package；真正首次发布前仍必须再次核查并取得对应 namespace。
 
-若某个未来 ecosystem 的 exact `skiloom` 无法使用，可以采用 ecosystem-specific scoped/qualified distribution name，但安装后的 canonical executable 与 protocol/config namespace仍保持 `skiloom`，除非另有正式 namespace ADR。
+其他独立实现或未来额外 ecosystem distribution 可以使用 ecosystem-specific scoped/qualified package name，但 canonical executable 与 protocol/config namespace仍保持 `skiloom`，除非另有正式 namespace ADR。
 
 ## 7. GitHub repository rename policy
 

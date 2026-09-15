@@ -134,7 +134,11 @@ Skiloom v0 不执行 destructive automatic Package Store GC。项目 remove 只�
 
 ## Skiloom Public Namespace
 
-Skiloom v0 的公开 token 是 `skiloom`：CLI 为 `skiloom`，project state 位于 `.agents/.skiloom/`，Project Intent/Lock 为 `skiloom.toml` / `skiloom.lock`，Package/Repository optional metadata 为 `skiloom-package.toml` / `skiloom-repo.toml`，公开 Package Snapshot format identifier 为 `SKILOOM-PACKAGE-V1`。旧 `Skiloom / akm` 只属于 pre-standard working draft，不形成 v0 compatibility alias。
+Skiloom v0 的公开 token 是 `skiloom`：CLI 为 `skiloom`，project state 位于 `.agents/.skiloom/`，Project Intent/Lock 为 `skiloom.toml` / `skiloom.lock`，Package/Repository optional metadata 为 `skiloom-package.toml` / `skiloom-repo.toml`，公开 Package Snapshot format identifier 为 `SKILOOM-PACKAGE-V1`。旧 `AKM / akm` 只属于 pre-standard working draft，不形成 v0 compatibility alias。
+
+## Reference Implementation Architecture
+
+Skiloom 官方 reference implementation 使用 Node.js + TypeScript + npm 作为主控制面与发行方式：Node.js >=22，开发/release 主线为 Node 24 LTS，公开 npm package / executable 均为 `skiloom`。复杂计算或底层热点允许使用预编译 Rust/C/C++ 等 standalone native helper，但它们只能位于窄的内部 seam 后，不能独立拥有网络、凭据、用户授权、Project/Lock 写入或 activation side effects；协议 authority 始终是 Source Spec + versioned conformance fixtures。
 
 ## Skiloom Core
 
