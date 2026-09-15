@@ -92,9 +92,17 @@ Skiloom 安装 Skill 时由用户选择的目标目录。Target 可以来自已�
 
 对 resolved Package 的 projected Skill identity 改名。Rename 不改变 Package coordinate、source resolution 或 Package Store `content-digest`；Skiloom 在 Target 中用 copy materialize 合法 projection view，并同步使顶层 `SKILL.md.name == <new-name>`。为灾难恢复，非默认 rename 作为稀疏 projection override 写入 Target Recovery Marker。
 
+## Target Identity
+
+每个 Skiloom-managed Target 都有一个写入 `.skiloom-state` 的 opaque random `target-id`，它标识一组可同步的 Target 安装状态，不表示项目、仓库或 worktree 身份。Machine Registry 维护该身份的当前 exact installation state；文件系统中的旧副本再次被操作时必须显式选择同步到该身份的当前状态，或分叉为新的 `target-id`。
+
+## Target Generation
+
+一个 Target Identity 当前 accepted installation state 的单调递增 revision。Machine Registry 保存当前 generation，`.skiloom-state` 保存该目录副本最后同步的 generation；落后的副本只能单向同步到当前状态，或分叉为新的 Target Identity。
+
 ## Target Recovery Marker
 
-每个 Skiloom-managed Target 根目录中的 `.skiloom-state` 轻量恢复锚点。它只记录用户直接安装的 top-level roots，以及恢复目标侧语义所需的 copy/rename 标记；不展开 transitive dependency graph，也不是日常运行的完整安装数据库。Machine Registry 丢失时，Skiloom 可从这些 roots 重新解析依赖并形成新的恢复 candidate。
+每个 Skiloom-managed Target 根目录中的 `.skiloom-state` 轻量恢复锚点。它记录 `target-id`、Target Generation、用户直接安装的 top-level roots，以及恢复目标侧语义所需的 copy/rename 标记；不展开 transitive dependency graph，也不是日常运行的完整安装数据库。Machine Registry 丢失时，Skiloom 可从这些 roots 重新解析依赖并形成新的 recovery candidate。
 
 ## Package Store GC Boundary
 
@@ -122,7 +130,7 @@ Skiloom 官方 reference implementation 使用 Node.js + TypeScript + npm 作为
 
 ## Machine Registry
 
-Skiloom Home 中的 machine-local SQLite 状态库，是普通安装日常管理的完整机器状态：可保存 exact source/resolution、dependency graph、Store inventory 与 Target projection/ownership 信息。它不登记项目身份、不建立项目 registry，也不引入 `project.id`。数据库丢失时可用 Target Recovery Marker 重新解析 top-level roots；该恢复不承诺得到原先完全相同的 transitive resolution。
+Skiloom Home 中的 machine-local SQLite 状态库，是普通安装日常管理的完整机器 authority：保存 accepted exact resolution、Target Identity/Generation 与 projection ownership 等机器状态；Package Store 独立负责 immutable content identity，live filesystem 只提供可验证观察，Target Recovery Marker 只提供恢复线索。它不登记项目身份、不建立项目 registry，也不引入 `project.id`。
 
 ## Catalog
 
