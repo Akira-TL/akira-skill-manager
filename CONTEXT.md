@@ -74,7 +74,15 @@ Package Snapshot 的 canonical 内容身份。v0 使用 `SKILOOM-PACKAGE-V1`：�
 
 ## Exact Installation Resolution
 
-某次已接受安装在本机 Machine Registry 中保存的完整精确解析结果，包括 canonical repository/source provenance、Release actual tag / exact commit 或 Git exact commit、实际 Package Root、Package Content Digest 与 exact dependency edges。它是日常 update/remove/doctor 的机器状态；只有用户显式导出时才变成可传播的 Reproducible Export，不要求项目长期维护 lock 文件。
+某个 Target Identity 当前已经接受、并保存在 Machine Registry 中的完整精确解析结果，包括 canonical repository/source provenance、Release actual tag / exact commit 或 Git exact commit、实际 Package Root、Package Content Digest 与 exact dependency edges。它既是日常管理的精确状态，也是下一次安装或更新候选的比较基线；旧状态只参与差异与授权判断，不影响 resolver 的候选排序。
+
+## Installation Candidate
+
+安装、更新或数据库丢失后的恢复重新解析出的完整 Target 候选状态。已有 Target 以 Machine Registry 的 Exact Installation Resolution 为比较基线；第一次安装或数据库丢失恢复没有精确旧基线。操作请求只触发候选计算，不等于接受结果；只有完整候选经用户或策略接受后才能成为新的精确安装状态。
+
+## Source Authorization
+
+对一次完整 Installation Candidate 的来源集合与精确绑定作出的接受决定。界面可以突出新增、移除或变化的来源差异，但授权对象始终是完整候选；Skiloom 不维护脱离当前安装状态的永久来源白名单，已经消失的来源日后重新进入依赖图时必须重新进入候选授权。
 
 ## Package Store
 
@@ -146,7 +154,7 @@ Skiloom 官方 reference implementation 使用 Node.js + TypeScript + npm 作为
 
 ## Machine Registry
 
-Skiloom Home 中的 machine-local SQLite 状态库，是普通安装日常管理的完整机器 authority：保存 accepted exact resolution、Target Identity/Generation 与 projection ownership 等机器状态；Package Store 独立负责 immutable content identity，live filesystem 只提供可验证观察，Target Recovery Marker 只提供恢复线索。它不登记项目身份、不建立项目 registry，也不引入 `project.id`。
+Skiloom Home 中的 machine-local SQLite 状态库，是普通安装日常管理的完整机器 authority：保存 accepted exact resolution、Target Identity/Generation 与 projection ownership 等机器状态；Package Store 独立负责 immutable content identity，live filesystem 只提供可验证观察，Target Recovery Marker 只提供恢复线索。同步或修复严格恢复这里已经接受的精确状态而不重新解析；安装、更新和数据库丢失后的恢复才允许形成新的 Installation Candidate。它不登记项目身份、不建立项目 registry，也不引入 `project.id`。
 
 ## Catalog
 
